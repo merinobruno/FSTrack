@@ -1,53 +1,209 @@
-import { useState } from 'react';
+import { Picker } from '@react-native-picker/picker';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Button,
   Platform,
-  ScrollView,
   StyleSheet,
   TextInput,
+  View
 } from 'react-native';
 
 import ParallaxScrollView from '@/components/parallax-scroll-view';
+import SendConfirmationModal from '@/components/SendConfirmationModal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Fonts } from '@/constants/theme';
+import { useCompany } from '@/contexts/CompanyContext';
+import AntDesign from '@expo/vector-icons/AntDesign';
+
+const isEmptyValue = (value: any) =>
+  value === null || value === undefined || value === '';
+
+const cleanObject = (obj: any): any => {
+  if (Array.isArray(obj)) {
+    return obj
+      .map(cleanObject)
+      .filter(
+        (item) =>
+          item !== null &&
+          item !== undefined &&
+          !(typeof item === 'object' &&
+            !Array.isArray(item) &&
+            Object.keys(item).length === 0)
+      );
+  }
+
+  if (obj !== null && typeof obj === 'object') {
+    const cleanedEntries = Object.entries(obj)
+      .filter(([, value]) => !isEmptyValue(value))
+      .map(([key, value]) => [key, cleanObject(value)]);
+
+    return Object.fromEntries(
+      cleanedEntries.filter(
+        ([, value]) =>
+          value !== null &&
+          value !== undefined &&
+          !(typeof value === 'object' &&
+            !Array.isArray(value) &&
+            Object.keys(value).length === 0)
+      )
+    );
+  }
+
+  return obj;
+};
+
+const toNumberOrNull = (value: string) => {
+  if (value === null || value === undefined || value.trim() === '') return null;
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const getTodayDate = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+type SelectOption = {
+  label: string;
+  value: string;
+};
+
+type MovimientoItem = {
+  ProductoCodigo: string;
+  LoteCodigo: string;
+  Dosis: string;
+  Grasa: string;
+  UFC: string;
+  Acidez: string;
+  Proteinas: string;
+  Temperatura: string;
+  CelSomaticas: string;
+  PartidaCodigo: string;
+  OrganizacionStockCodigo: string;
+};
+
+const createEmptyMovimientoItem = (): MovimientoItem => ({
+  ProductoCodigo: 'LECHE',
+  LoteCodigo: '',
+  Dosis: '',
+  Grasa: '',
+  UFC: '',
+  Acidez: '',
+  Proteinas: '',
+  Temperatura: '',
+  CelSomaticas: '',
+  PartidaCodigo: '',
+  OrganizacionStockCodigo: '',
+});
+
+type InputFieldProps = {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  keyboardType?: 'default' | 'numeric';
+};
+
+function InputField({
+  label,
+  value,
+  onChangeText,
+  keyboardType = 'default',
+}: InputFieldProps) {
+  return (
+    <>
+      <ThemedText>{label}</ThemedText>
+      <TextInput
+        style={styles.input}
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+      />
+    </>
+  );
+}
+
+type SelectFieldProps = {
+  label: string;
+  selectedValue: string;
+  options: SelectOption[];
+  onValueChange: (value: string) => void;
+  placeholder?: string;
+  loading?: boolean;
+};
+
+function SelectField({
+  label,
+  selectedValue,
+  options,
+  onValueChange,
+  placeholder = 'Seleccionar...',
+  loading = false,
+}: SelectFieldProps) {
+  return (
+    <>
+      <ThemedText>{label}</ThemedText>
+      <View style={styles.pickerContainer}>
+        {loading ? (
+          <View style={styles.pickerLoadingContainer}>
+            <ActivityIndicator />
+          </View>
+        ) : (
+          <Picker
+            selectedValue={selectedValue}
+            onValueChange={(value) => onValueChange(String(value))}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
+          >
+            <Picker.Item label={placeholder} value="" />
+            {options.map((option) => (
+              <Picker.Item
+                key={option.value}
+                label={option.label}
+                value={option.value}
+              />
+            ))}
+          </Picker>
+        )}
+      </View>
+    </>
+  );
+}
 
 export default function TabTwoScreen() {
   const [loading, setLoading] = useState(false);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [loadingLotes, setLoadingLotes] = useState(false);
+  const [loadingHaciendaCategorias, setLoadingHaciendaCategorias] = useState(false);
+  const [loadingDepositos, setLoadingDepositos] = useState(false);
   const [apiResponse, setApiResponse] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showOptionalFields, setShowOptionalFields] = useState(false);
 
-  // Main form fields
-  const [haciendaCategoriaCodigo, setHaciendaCategoriaCodigo] = useState('');
-  const [establecimientoCodigo, setEstablecimientoCodigo] = useState('');
-  const [campanaCodigo, setCampanaCodigo] = useState('codigoFKBSACampana');
-  const [numeroDocumento, setNumeroDocumento] = useState('');
+  const [loteOptions, setLoteOptions] = useState<SelectOption[]>([]);
+  const [haciendaCategoriaOptions, setHaciendaCategoriaOptions] = useState<SelectOption[]>([]);
+  const [depositoOptions, setDepositoOptions] = useState<SelectOption[]>([]);
+
+  // Main fields
   const [identificacionExterna, setIdentificacionExterna] = useState('');
-  const [fecha, setFecha] = useState('2026-04-08');
-  const [cabezas, setCabezas] = useState('1234.56');
-  const [tropa, setTropa] = useState('');
-  const [transaccionSubtipoCodigo, setTransaccionSubtipoCodigo] = useState('codigoFKFAFTransaccionSubtipo');
+  const [transaccionSubtipoCodigo, setTransaccionSubtipoCodigo] = useState('PRODLECH');
+  const [fecha, setFecha] = useState(getTodayDate());
+  const [numeroDocumento, setNumeroDocumento] = useState('');
+  const [campanaCodigo, setCampanaCodigo] = useState('');
   const [descripcion, setDescripcion] = useState('');
-  const [loteCodigo, setLoteCodigo] = useState('');
-
-  // OperacionCotizaciones[0]
-  const [monedaCodigo, setMonedaCodigo] = useState('codigoFKBSMoneda');
-  const [cotizacion, setCotizacion] = useState('1234.56');
-
-  // MovimientoHaciendaProduccionLeche[0]
-  const [dosis, setDosis] = useState('1234.56');
-  const [productoCodigo, setProductoCodigo] = useState('codigoFKBSProducto');
-  const [ufc, setUfc] = useState('1234.56');
-  const [temperatura, setTemperatura] = useState('1234.56');
-  const [organizacionStockCodigo, setOrganizacionStockCodigo] = useState('');
-  const [grasa, setGrasa] = useState('1234.56');
-  const [movimientoLoteCodigo, setMovimientoLoteCodigo] = useState('codigoFKBSDeposito');
-  const [proteinas, setProteinas] = useState('1234.56');
-  const [acidez, setAcidez] = useState('1234.56');
-  const [celSomaticas, setCelSomaticas] = useState('1234.56');
-  const [partidaCodigo, setPartidaCodigo] = useState('codigoFKBSPartida');
+  const [haciendaCategoriaCodigo, setHaciendaCategoriaCodigo] = useState('');
+  const [loteCodigo, setLoteCodigo] = useState('LECH-36');
+  const [cabezas, setCabezas] = useState('');
+  const [tropa, setTropa] = useState('');
+  const { selectedCompany } = useCompany();
+  // Dynamic movement items
+  const [movimientos, setMovimientos] = useState<MovimientoItem[]>([
+    createEmptyMovimientoItem(),
+  ]);
 
   const client_id = 'a95197901b600187ba9e7712e547482e';
   const client_secret = 'a38d9c762c5108bbb5800c4b7b49a2f1';
@@ -58,62 +214,207 @@ export default function TabTwoScreen() {
     '&client_secret=' +
     client_secret;
 
-  const sendProduccion = async () => {
+  const getToken = async () => {
+    const tokenResponse = await fetch(tokenUrl);
+
+    if (!tokenResponse.ok) {
+      throw new Error(`Token request failed: ${tokenResponse.status}`);
+    }
+
+    return await tokenResponse.text();
+  };
+
+  const loadLotes = async () => {
+    try {
+      setLoadingLotes(true);
+
+      const token = await getToken();
+
+      const response = await fetch(
+        `https://api.finneg.com/api/Lote/list?ACCESS_TOKEN=${token}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Lote request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const options: SelectOption[] = (Array.isArray(data) ? data : [])
+        .map((item: any) => ({
+          label: item.nombre ?? item.Nombre ?? item.codigo ?? item.Codigo ?? '',
+          value: item.codigo ?? item.Codigo ?? '',
+        }))
+        .filter((item: SelectOption) => item.label && item.value);
+
+      setLoteOptions(options);
+    } catch (err: any) {
+      console.error('Error loading lotes:', err);
+      setError(err.message || 'Error loading lotes');
+    } finally {
+      setLoadingLotes(false);
+    }
+  };
+
+  const loadHaciendaCategorias = async () => {
+    try {
+      setLoadingHaciendaCategorias(true);
+
+      const token = await getToken();
+
+      const response = await fetch(
+        `https://api.finneg.com/api/haciendaCategoria/list?ACCESS_TOKEN=${token}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`HaciendaCategoria request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const options: SelectOption[] = (Array.isArray(data) ? data : [])
+        .map((item: any) => ({
+          label:
+            item.nombre ??
+            item.Nombre ??
+            item.descripcion ??
+            item.Descripcion ??
+            item.codigo ??
+            item.Codigo ??
+            '',
+          value:
+            item.codigo ??
+            item.Codigo ??
+            item.value ??
+            '',
+        }))
+        .filter((item: SelectOption) => item.label && item.value);
+
+      setHaciendaCategoriaOptions(options);
+    } catch (err: any) {
+      console.error('Error loading haciendaCategoria:', err);
+      setError(err.message || 'Error loading haciendaCategoria');
+    } finally {
+      setLoadingHaciendaCategorias(false);
+    }
+  };
+
+  const loadDepositos = async () => {
+    try {
+      setLoadingDepositos(true);
+
+      const token = await getToken();
+
+      const response = await fetch(
+        `https://api.finneg.com/api/depositos/list?ACCESS_TOKEN=${token}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Depositos request failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const options: SelectOption[] = (Array.isArray(data) ? data : [])
+        .map((item: any) => ({
+          label:
+            item.nombre ??
+            item.Nombre ??
+            item.descripcion ??
+            item.Descripcion ??
+            item.codigo ??
+            item.Codigo ??
+            '',
+          value:
+            item.codigo ??
+            item.Codigo ??
+            item.value ??
+            '',
+        }))
+        .filter((item: SelectOption) => item.label && item.value);
+
+      setDepositoOptions(options);
+    } catch (err: any) {
+      console.error('Error loading depositos:', err);
+      setError(err.message || 'Error loading depositos');
+    } finally {
+      setLoadingDepositos(false);
+    }
+  };
+
+  useEffect(() => {
+    loadLotes();
+    loadHaciendaCategorias();
+    loadDepositos();
+  }, []);
+
+  const updateMovimientoField = (
+    index: number,
+    field: keyof MovimientoItem,
+    value: string
+  ) => {
+    setMovimientos((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const addMovimiento = () => {
+    setMovimientos((prev) => [...prev, createEmptyMovimientoItem()]);
+  };
+
+  const removeMovimiento = (index: number) => {
+    setMovimientos((prev) => {
+      if (prev.length === 1) return prev;
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const buildPayload = () => {
+    const rawPayload = {
+      IdentificacionExterna: identificacionExterna || null,
+      TransaccionSubtipoCodigo: transaccionSubtipoCodigo || null,
+      Fecha: fecha || null,
+      NumeroDocumento: numeroDocumento || null,
+      CampanaCodigo: campanaCodigo || null,
+      Descripcion: descripcion || null,
+      MovimientoHaciendaProduccionLeche: movimientos.map((item) => ({
+        ProductoCodigo: item.ProductoCodigo || null,
+        LoteCodigo: item.LoteCodigo || null,
+        Dosis: toNumberOrNull(item.Dosis),
+        Grasa: toNumberOrNull(item.Grasa),
+        UFC: toNumberOrNull(item.UFC),
+        Acidez: toNumberOrNull(item.Acidez),
+        Proteinas: toNumberOrNull(item.Proteinas),
+        Temperatura: toNumberOrNull(item.Temperatura),
+        CelSomaticas: toNumberOrNull(item.CelSomaticas),
+        PartidaCodigo: item.PartidaCodigo || null,
+        OrganizacionStockCodigo: item.OrganizacionStockCodigo || null,
+      })),
+      HaciendaCategoriaCodigo: haciendaCategoriaCodigo || null,
+      LoteCodigo: loteCodigo || null,
+      Cabezas: toNumberOrNull(cabezas),
+      Tropa: tropa || null,
+      EstablecimientoCodigo: selectedCompany?.value || null,
+    };
+
+    return cleanObject(rawPayload);
+  };
+
+  const submitProduccion = async () => {
+    if (!selectedCompany) {
+      setError('Seleccioná una empresa en Home antes de enviar.');
+      return;
+    }
     setLoading(true);
     setError(null);
     setApiResponse(null);
 
     try {
-      // 1) Get token
-      const tokenResponse = await fetch(tokenUrl);
-
-      if (!tokenResponse.ok) {
-        throw new Error(`Token request failed: ${tokenResponse.status}`);
-      }
-
-      const tokenData = await tokenResponse.text();
-      console.log('Token response:', tokenData);
-
-      // 2) Build payload
-      const payload = {
-        HaciendaCategoriaCodigo: haciendaCategoriaCodigo,
-        EstablecimientoCodigo: establecimientoCodigo,
-        CampanaCodigo: campanaCodigo,
-        NumeroDocumento: numeroDocumento,
-        IdentificacionExterna: identificacionExterna,
-        Fecha: fecha,
-        OperacionCotizaciones: [
-          {
-            MonedaCodigo: monedaCodigo,
-            Cotizacion: Number(cotizacion),
-          },
-        ],
-        Cabezas: Number(cabezas),
-        Tropa: tropa,
-        TransaccionSubtipoCodigo: transaccionSubtipoCodigo,
-        Descripcion: descripcion,
-        LoteCodigo: loteCodigo,
-        MovimientoHaciendaProduccionLeche: [
-          {
-            Dosis: Number(dosis),
-            ProductoCodigo: productoCodigo,
-            UFC: Number(ufc),
-            Temperatura: Number(temperatura),
-            OrganizacionStockCodigo: organizacionStockCodigo,
-            Grasa: Number(grasa),
-            LoteCodigo: movimientoLoteCodigo,
-            Proteinas: Number(proteinas),
-            Acidez: Number(acidez),
-            CelSomaticas: Number(celSomaticas),
-            PartidaCodigo: partidaCodigo,
-          },
-        ],
-      };
+      const tokenData = await getToken();
+      const payload = buildPayload();
 
       console.log('Payload:', JSON.stringify(payload, null, 2));
 
-      // 3) Send POST to API
-      // Replace this URL with the real Finnegans endpoint for alta/POST
       const apiCall = await fetch(
         'https://api.finneg.com/api/produccionLeche?ACCESS_TOKEN=' + tokenData,
         {
@@ -141,7 +442,6 @@ export default function TabTwoScreen() {
       }
 
       setApiResponse(parsedResponse);
-      console.log('API response:', parsedResponse);
     } catch (err: any) {
       console.error('Error sending data:', err);
       setError(err.message || 'Unknown error');
@@ -150,15 +450,24 @@ export default function TabTwoScreen() {
     }
   };
 
+  const handleSendPress = () => {
+    if (!selectedCompany) {
+      setError('Seleccioná una empresa en Home antes de enviar.');
+      return;
+    }
+
+    setConfirmVisible(true);
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
       headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
+        <AntDesign
+        size={200}
+        color="white"
+        name="product"
+        style={styles.headerImage}
         />
       }
     >
@@ -169,195 +478,307 @@ export default function TabTwoScreen() {
             fontFamily: Fonts.rounded,
           }}
         >
-          Producción
+          Producción {selectedCompany ? `- ${selectedCompany.label}` : '- Sin empresa'}
         </ThemedText>
       </ThemedView>
 
       <ThemedText>Formulario de Alta de Producción.</ThemedText>
 
       <ThemedView style={styles.formContainer}>
-        <ThemedText type="subtitle">Producción Hacienda</ThemedText>
+        <ThemedText type="subtitle">Campos principales</ThemedText>
 
-        <ThemedText>HaciendaCategoriaCodigo</ThemedText>
-        <TextInput style={styles.input} value={haciendaCategoriaCodigo} onChangeText={setHaciendaCategoriaCodigo} />
-
-        <ThemedText>EstablecimientoCodigo</ThemedText>
-        <TextInput style={styles.input} value={establecimientoCodigo} onChangeText={setEstablecimientoCodigo} />
-
-        <ThemedText>CampanaCodigo</ThemedText>
-        <TextInput style={styles.input} value={campanaCodigo} onChangeText={setCampanaCodigo} />
-
-        <ThemedText>NumeroDocumento</ThemedText>
-        <TextInput style={styles.input} value={numeroDocumento} onChangeText={setNumeroDocumento} />
-
-        <ThemedText>IdentificacionExterna</ThemedText>
-        <TextInput style={styles.input} value={identificacionExterna} onChangeText={setIdentificacionExterna} />
-
-        <ThemedText>Fecha</ThemedText>
-        <TextInput
-          style={styles.input}
-          placeholder="YYYY-MM-DD"
+        <InputField
+          label="Fecha"
           value={fecha}
           onChangeText={setFecha}
         />
 
-        <ThemedText>Cabezas</ThemedText>
-        <TextInput
-          style={styles.input}
+        <InputField
+          label="Descripcion"
+          value={descripcion}
+          onChangeText={setDescripcion}
+        />
+
+        <SelectField
+          label="HaciendaCategoriaCodigo"
+          selectedValue={haciendaCategoriaCodigo}
+          options={haciendaCategoriaOptions}
+          onValueChange={setHaciendaCategoriaCodigo}
+          placeholder="Seleccionar categoría..."
+          loading={loadingHaciendaCategorias}
+        />
+
+        <SelectField
+          label="LoteCodigo"
+          selectedValue={loteCodigo}
+          options={loteOptions}
+          onValueChange={setLoteCodigo}
+          placeholder="Seleccionar lote..."
+          loading={loadingLotes}
+        />
+
+        <InputField
+          label="Cabezas"
           value={cabezas}
           onChangeText={setCabezas}
           keyboardType="numeric"
         />
 
-        <ThemedText>Tropa</ThemedText>
-        <TextInput style={styles.input} value={tropa} onChangeText={setTropa} />
-
-        <ThemedText>TransaccionSubtipoCodigo</ThemedText>
-        <TextInput
-          style={styles.input}
-          value={transaccionSubtipoCodigo}
-          onChangeText={setTransaccionSubtipoCodigo}
-        />
-
-        <ThemedText>Descripcion</ThemedText>
-        <TextInput style={styles.input} value={descripcion} onChangeText={setDescripcion} />
-
-        <ThemedText>LoteCodigo</ThemedText>
-        <TextInput style={styles.input} value={loteCodigo} onChangeText={setLoteCodigo} />
-
-        <ThemedText type="subtitle">Operación Cotización</ThemedText>
-
-        <ThemedText>MonedaCodigo</ThemedText>
-        <TextInput style={styles.input} value={monedaCodigo} onChangeText={setMonedaCodigo} />
-
-        <ThemedText>Cotizacion</ThemedText>
-        <TextInput
-          style={styles.input}
-          value={cotizacion}
-          onChangeText={setCotizacion}
-          keyboardType="numeric"
-        />
-
         <ThemedText type="subtitle">Movimiento Hacienda Producción Leche</ThemedText>
 
-        <ThemedText>Dosis</ThemedText>
-        <TextInput style={styles.input} value={dosis} onChangeText={setDosis} keyboardType="numeric" />
+        {movimientos.map((item, index) => (
+          <ThemedView key={index} style={styles.miniForm}>
+            <ThemedText style={styles.itemTitle}>
+              Item {index + 1}
+            </ThemedText>
 
-        <ThemedText>ProductoCodigo</ThemedText>
-        <TextInput style={styles.input} value={productoCodigo} onChangeText={setProductoCodigo} />
+            <InputField
+              label="ProductoCodigo"
+              value={item.ProductoCodigo}
+              onChangeText={(text) =>
+                updateMovimientoField(index, 'ProductoCodigo', text)
+              }
+            />
 
-        <ThemedText>UFC</ThemedText>
-        <TextInput style={styles.input} value={ufc} onChangeText={setUfc} keyboardType="numeric" />
+            <SelectField
+              label="LoteCodigo"
+              selectedValue={item.LoteCodigo}
+              options={depositoOptions}
+              onValueChange={(value) =>
+                updateMovimientoField(index, 'LoteCodigo', value)
+              }
+              placeholder="Seleccionar depósito..."
+              loading={loadingDepositos}
+            />
 
-        <ThemedText>Temperatura</ThemedText>
-        <TextInput
-          style={styles.input}
-          value={temperatura}
-          onChangeText={setTemperatura}
-          keyboardType="numeric"
-        />
+            <InputField
+              label="Dosis"
+              value={item.Dosis}
+              onChangeText={(text) =>
+                updateMovimientoField(index, 'Dosis', text)
+              }
+              keyboardType="numeric"
+            />
 
-        <ThemedText>OrganizacionStockCodigo</ThemedText>
-        <TextInput
-          style={styles.input}
-          value={organizacionStockCodigo}
-          onChangeText={setOrganizacionStockCodigo}
-        />
+            <InputField
+              label="Grasa"
+              value={item.Grasa}
+              onChangeText={(text) =>
+                updateMovimientoField(index, 'Grasa', text)
+              }
+              keyboardType="numeric"
+            />
 
-        <ThemedText>Grasa</ThemedText>
-        <TextInput style={styles.input} value={grasa} onChangeText={setGrasa} keyboardType="numeric" />
+            <InputField
+              label="UFC"
+              value={item.UFC}
+              onChangeText={(text) =>
+                updateMovimientoField(index, 'UFC', text)
+              }
+              keyboardType="numeric"
+            />
 
-        <ThemedText>LoteCodigo</ThemedText>
-        <TextInput
-          style={styles.input}
-          value={movimientoLoteCodigo}
-          onChangeText={setMovimientoLoteCodigo}
-        />
+            <InputField
+              label="Acidez"
+              value={item.Acidez}
+              onChangeText={(text) =>
+                updateMovimientoField(index, 'Acidez', text)
+              }
+              keyboardType="numeric"
+            />
 
-        <ThemedText>Proteinas</ThemedText>
-        <TextInput
-          style={styles.input}
-          value={proteinas}
-          onChangeText={setProteinas}
-          keyboardType="numeric"
-        />
+            <InputField
+              label="Proteinas"
+              value={item.Proteinas}
+              onChangeText={(text) =>
+                updateMovimientoField(index, 'Proteinas', text)
+              }
+              keyboardType="numeric"
+            />
 
-        <ThemedText>Acidez</ThemedText>
-        <TextInput style={styles.input} value={acidez} onChangeText={setAcidez} keyboardType="numeric" />
+            <InputField
+              label="Temperatura"
+              value={item.Temperatura}
+              onChangeText={(text) =>
+                updateMovimientoField(index, 'Temperatura', text)
+              }
+              keyboardType="numeric"
+            />
 
-        <ThemedText>CelSomaticas</ThemedText>
-        <TextInput
-          style={styles.input}
-          value={celSomaticas}
-          onChangeText={setCelSomaticas}
-          keyboardType="numeric"
-        />
+            <InputField
+              label="CelSomaticas"
+              value={item.CelSomaticas}
+              onChangeText={(text) =>
+                updateMovimientoField(index, 'CelSomaticas', text)
+              }
+              keyboardType="numeric"
+            />
 
-        <ThemedText>PartidaCodigo</ThemedText>
-        <TextInput style={styles.input} value={partidaCodigo} onChangeText={setPartidaCodigo} />
+            {showOptionalFields && (
+              <>
+                <InputField
+                  label="PartidaCodigo"
+                  value={item.PartidaCodigo}
+                  onChangeText={(text) =>
+                    updateMovimientoField(index, 'PartidaCodigo', text)
+                  }
+                />
+
+                <InputField
+                  label="OrganizacionStockCodigo"
+                  value={item.OrganizacionStockCodigo}
+                  onChangeText={(text) =>
+                    updateMovimientoField(index, 'OrganizacionStockCodigo', text)
+                  }
+                />
+              </>
+            )}
+
+            <View style={styles.itemButtons}>
+              <Button title="Agregar item" onPress={addMovimiento} />
+              {movimientos.length > 1 && (
+                <Button
+                  title="Quitar item"
+                  onPress={() => removeMovimiento(index)}
+                  color="#b00020"
+                />
+              )}
+            </View>
+          </ThemedView>
+        ))}
+
+        {showOptionalFields && (
+          <>
+            <ThemedText type="subtitle">Campos opcionales generales</ThemedText>
+
+            <InputField
+              label="IdentificacionExterna"
+              value={identificacionExterna}
+              onChangeText={setIdentificacionExterna}
+            />
+
+            <InputField
+              label="NumeroDocumento"
+              value={numeroDocumento}
+              onChangeText={setNumeroDocumento}
+            />
+
+            <InputField
+              label="CampanaCodigo"
+              value={campanaCodigo}
+              onChangeText={setCampanaCodigo}
+            />
+
+            <InputField
+              label="Tropa"
+              value={tropa}
+              onChangeText={setTropa}
+            />
+          </>
+        )}
 
         <Button
-          title={loading ? 'Sending...' : 'Send Production'}
-          onPress={sendProduccion}
+          title={loading ? 'Enviando...' : 'Enviar'}
+          onPress={handleSendPress}
           disabled={loading}
         />
 
-        {loading && <ActivityIndicator style={styles.loader} />}
+        {loading && <ActivityIndicator />}
 
-        {error && <ThemedText style={styles.errorText}>Error: {error}</ThemedText>}
+        {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
+        <SendConfirmationModal
+          visible={confirmVisible}
+          title="¿Estás seguro?"
+          payload={buildPayload()}
+          onCancel={() => setConfirmVisible(false)}
+          onConfirm={async () => {
+            setConfirmVisible(false);
+            await submitProduccion();
+          }}
+          confirmText="Confirmar"
+          cancelText="Cancelar"
+        />
+        
 
-        {apiResponse && (
-          <ThemedView style={styles.responseBox}>
-            <ThemedText type="subtitle">API Response</ThemedText>
-            <ScrollView horizontal>
-              <ThemedText style={styles.responseText}>
-                {JSON.stringify(apiResponse, null, 2)}
-              </ThemedText>
-            </ScrollView>
-          </ThemedView>
-        )}
+        
       </ThemedView>
     </ParallaxScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+  headerImage: { position: 'absolute' },
+  titleContainer: { flexDirection: 'row', gap: 8 },
+
   formContainer: {
     gap: 12,
-    marginTop: 12,
-    marginBottom: 20,
     padding: 12,
     borderRadius: 12,
     backgroundColor: 'rgba(128,128,128,0.08)',
   },
+
+  miniForm: {
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+
+  itemTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+
+  itemButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 8,
+  },
+
   input: {
     borderWidth: 1,
     borderColor: '#999',
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    padding: 10,
     backgroundColor: '#fff',
+    height: 44,
   },
-  loader: {
-    marginTop: 8,
+
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#999',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    height: 44,
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  errorText: {
-    color: 'red',
+
+  pickerLoadingContainer: {
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+
+  picker: {
+    height: 44,
+    width: '100%',
+  },
+
+  pickerItem: {
+    fontSize: 14,
+    height: 44,
+  },
+
+  errorText: { color: 'red' },
+
   responseBox: {
     marginTop: 8,
     gap: 8,
   },
+
   responseText: {
     fontSize: 12,
     fontFamily: Platform.select({
