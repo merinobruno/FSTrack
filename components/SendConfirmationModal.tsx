@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -20,6 +19,111 @@ type Props = {
   confirmText?: string;
   cancelText?: string;
 };
+
+const isEmptyValue = (value: any) =>
+  value === null ||
+  value === undefined ||
+  value === '' ||
+  (Array.isArray(value) && value.length === 0);
+
+const prettifyKey = (key: string) =>
+  key
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .replace(/\//g, ' / ')
+    .trim();
+
+const formatValue = (value: any) => {
+  if (typeof value === 'boolean') return value ? 'Sí' : 'No';
+  if (value === null || value === undefined || value === '') return '-';
+  return String(value);
+};
+
+function FieldRow({ label, value }: { label: string; value: any }) {
+  return (
+    <View style={styles.fieldRow}>
+      <ThemedText style={styles.fieldLabel}>{label}</ThemedText>
+      <ThemedText style={styles.fieldValue}>{formatValue(value)}</ThemedText>
+    </View>
+  );
+}
+
+function SectionCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <View style={styles.sectionCard}>
+      <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
+      {children}
+    </View>
+  );
+}
+
+function RenderPayload({
+  data,
+  parentKey,
+}: {
+  data: any;
+  parentKey?: string;
+}) {
+  if (!data || typeof data !== 'object') return null;
+
+  return (
+    <>
+      {Object.entries(data).map(([key, value]) => {
+        if (isEmptyValue(value)) return null;
+
+        const label = prettifyKey(key);
+
+        if (Array.isArray(value)) {
+          return (
+            <SectionCard
+              key={`${parentKey || 'root'}-${key}`}
+              title={label}
+            >
+              {value.map((item, index) => (
+                <View key={index} style={styles.arrayItemCard}>
+                  <ThemedText style={styles.arrayItemTitle}>
+                    Item {index + 1}
+                  </ThemedText>
+
+                  {typeof item === 'object' && item !== null ? (
+                    <RenderPayload data={item} parentKey={`${key}-${index}`} />
+                  ) : (
+                    <FieldRow label={label} value={item} />
+                  )}
+                </View>
+              ))}
+            </SectionCard>
+          );
+        }
+
+        if (typeof value === 'object' && value !== null) {
+          return (
+            <SectionCard
+              key={`${parentKey || 'root'}-${key}`}
+              title={label}
+            >
+              <RenderPayload data={value} parentKey={key} />
+            </SectionCard>
+          );
+        }
+
+        return (
+          <FieldRow
+            key={`${parentKey || 'root'}-${key}`}
+            label={label}
+            value={value}
+          />
+        );
+      })}
+    </>
+  );
+}
 
 export default function SendConfirmationModal({
   visible,
@@ -52,7 +156,7 @@ export default function SendConfirmationModal({
         >
           <ThemedText type="subtitle">{title}</ThemedText>
           <ThemedText>
-            Revisa los datos antes de enviarlos a Finnegans.
+            Revisá los datos antes de enviarlos a Finnegans.
           </ThemedText>
 
           <View
@@ -65,9 +169,7 @@ export default function SendConfirmationModal({
             ]}
           >
             <ScrollView>
-              <ThemedText style={styles.previewText}>
-                {JSON.stringify(payload, null, 2)}
-              </ThemedText>
+              <RenderPayload data={payload} />
             </ScrollView>
           </View>
 
@@ -113,13 +215,42 @@ const styles = StyleSheet.create({
     minHeight: 220,
     maxHeight: 350,
   },
-  previewText: {
+  fieldRow: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(128,128,128,0.15)',
+    gap: 2,
+  },
+  fieldLabel: {
     fontSize: 12,
-    fontFamily: Platform.select({
-      ios: 'Courier',
-      android: 'monospace',
-      web: 'monospace',
-    }),
+    opacity: 0.75,
+  },
+  fieldValue: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  sectionCard: {
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(128,128,128,0.08)',
+    gap: 6,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  arrayItemCard: {
+    marginTop: 8,
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(128,128,128,0.06)',
+    gap: 4,
+  },
+  arrayItemTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   actions: {
     flexDirection: 'row',
@@ -135,7 +266,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   cancelButton: {
-    backgroundColor: '#bdbdbd',
+    backgroundColor: '#ff0000',
   },
   confirmButton: {
     backgroundColor: '#4caf50',

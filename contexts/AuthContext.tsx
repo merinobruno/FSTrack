@@ -27,9 +27,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const AUTH_STORAGE_KEY = 'fstrack_auth_user';
-
-// Change this depending on where you are testing
-const API_BASE_URL = 'http://192.168.0.118:3001';
+const API_BASE_URL = 'https://fstrack-backend.onrender.com';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);

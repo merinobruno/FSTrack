@@ -1,4 +1,5 @@
 import { Picker } from '@react-native-picker/picker';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -114,15 +115,35 @@ function InputField({
   onChangeText,
   keyboardType = 'default',
 }: InputFieldProps) {
+  const colorScheme = useColorScheme() ?? 'light';
+  const isDark = colorScheme === 'dark';
+
   return (
     <>
       <ThemedText>{label}</ThemedText>
-      <TextInput
-        style={styles.input}
-        value={value}
-        onChangeText={onChangeText}
-        keyboardType={keyboardType}
-      />
+      <View
+        style={[
+          styles.inputContainer,
+          {
+            backgroundColor: isDark ? '#1f1f1f' : '#ebebeb',
+            borderColor: isDark ? '#555' : '#999',
+          },
+        ]}
+      >
+        <TextInput
+          style={[
+            styles.input,
+            {
+              color: isDark ? '#fff' : '#111',
+              backgroundColor: 'transparent',
+            },
+          ]}
+          value={value}
+          onChangeText={onChangeText}
+          keyboardType={keyboardType}
+          placeholderTextColor={isDark ? '#aaa' : '#666'}
+        />
+      </View>
     </>
   );
 }
@@ -144,10 +165,21 @@ function SelectField({
   placeholder = 'Seleccionar...',
   loading = false,
 }: SelectFieldProps) {
+  const colorScheme = useColorScheme() ?? 'light';
+  const isDark = colorScheme === 'dark';
+
   return (
     <>
       <ThemedText>{label}</ThemedText>
-      <View style={styles.pickerContainer}>
+      <View
+        style={[
+          styles.pickerContainer,
+          {
+            backgroundColor: isDark ? '#1f1f1f' : '#ebebeb',
+            borderColor: isDark ? '#555' : '#999',
+          },
+        ]}
+      >
         {loading ? (
           <View style={styles.pickerLoadingContainer}>
             <ActivityIndicator />
@@ -156,15 +188,27 @@ function SelectField({
           <Picker
             selectedValue={selectedValue}
             onValueChange={(value) => onValueChange(String(value))}
-            style={styles.picker}
-            itemStyle={styles.pickerItem}
+            style={[
+              styles.picker,
+              {
+                color: isDark ? '#fff' : '#111',
+                backgroundColor: 'transparent',
+              },
+            ]}
+            dropdownIconColor={isDark ? '#fff' : '#111'}
+            mode="dropdown"
           >
-            <Picker.Item label={placeholder} value="" />
+            <Picker.Item
+              label={placeholder}
+              value=""
+              color={isDark ? '#fff' : '#111'}
+            />
             {options.map((option) => (
               <Picker.Item
                 key={option.value}
                 label={option.label}
                 value={option.value}
+                color={isDark ? '#fff' : '#111'}
               />
             ))}
           </Picker>
@@ -175,6 +219,8 @@ function SelectField({
 }
 
 export default function TabTwoScreen() {
+  const colorScheme = useColorScheme() ?? 'light';
+  const isDark = colorScheme === 'dark';
   const [loading, setLoading] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loadingLotes, setLoadingLotes] = useState(false);
@@ -714,7 +760,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 12,
     borderRadius: 12,
-    backgroundColor: 'rgba(128,128,128,0.08)',
+    backgroundColor: 'rgba(83, 83, 83, 0.07)',
   },
 
   miniForm: {
@@ -737,39 +783,52 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
+  inputContainer: {
+    borderWidth: 0,
+    borderRadius: 10,
+    minHeight: 56,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+
   input: {
-    borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 8,
-    padding: 10,
-    backgroundColor: '#fff',
-    height: 44,
+    width: '100%',
+    minHeight: 56,
+    fontSize: 16,
+    paddingVertical: 0,
   },
 
   pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    height: 44,
+    borderWidth: 0,
+    borderRadius: 10,
+    minHeight: 56,
     justifyContent: 'center',
-    overflow: 'hidden',
+    paddingHorizontal: 4,
   },
 
   pickerLoadingContainer: {
-    height: 44,
+    minHeight: 56,
     justifyContent: 'center',
     alignItems: 'center',
   },
 
   picker: {
-    height: 44,
     width: '100%',
+    minHeight: 56,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    ...Platform.select({
+      android: {
+        height: 56,
+      },
+      ios: {
+        height: 180,
+      },
+    }),
   },
 
   pickerItem: {
     fontSize: 14,
-    height: 44,
   },
 
   errorText: { color: 'red' },

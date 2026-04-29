@@ -1,9 +1,10 @@
-import { Picker } from '@react-native-picker/picker';
+import { Picker } from '@react-native-picker/picker';import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Image } from 'expo-image';
 import {
   ActivityIndicator,
   Button,
   Platform,
+  Pressable,
   StyleSheet,
   View
 } from 'react-native';
@@ -17,6 +18,8 @@ import { useCompany } from '@/contexts/CompanyContext';
 import { router } from 'expo-router';
 
 export default function TabTwoScreen() {
+  const colorScheme = useColorScheme() ?? 'light';
+  const isDark = colorScheme === 'dark';
   const { signOut } = useAuth();
   const { clearSelectedCompany } = useCompany();
   const { user } = useAuth();
@@ -63,29 +66,49 @@ export default function TabTwoScreen() {
       <ThemedView style={styles.formContainer}>
         <ThemedText type="subtitle">Empresa</ThemedText>
 
-        <View style={styles.pickerContainer}>
-          {loadingCompanies ? (
-            <View style={styles.pickerLoadingContainer}>
-              <ActivityIndicator />
-            </View>
-          ) : (
-            <Picker
-              selectedValue={selectedCompany?.value ?? ''}
-              onValueChange={(value) => setSelectedCompanyByValue(String(value))}
-              style={styles.picker}
-              itemStyle={styles.pickerItem}
-            >
-              <Picker.Item label="Seleccionar empresa..." value="" />
-              {companies.map((option) => (
-                <Picker.Item
-                  key={option.value}
-                  label={option.label}
-                  value={option.value}
-                />
-              ))}
-            </Picker>
-          )}
-        </View>
+        <View
+  style={[
+    styles.pickerContainer,
+    {
+      backgroundColor: isDark ? '#1f1f1f' : '#fff',
+      borderColor: isDark ? '#555' : '#999',
+    },
+  ]}
+>
+  {loadingCompanies ? (
+    <View style={styles.pickerLoadingContainer}>
+      <ActivityIndicator />
+    </View>
+  ) : (
+    <Picker
+      selectedValue={selectedCompany?.value ?? ''}
+      onValueChange={(value) => setSelectedCompanyByValue(String(value))}
+      style={[
+        styles.picker,
+        {
+          color: isDark ? '#fff' : '#111',
+          backgroundColor: isDark ? '#1f1f1f' : '#fff',
+        },
+      ]}
+      dropdownIconColor={isDark ? '#fff' : '#111'}
+      mode="dropdown"
+    >
+      <Picker.Item
+        label="Seleccionar empresa..."
+        value=""
+        color={isDark ? '#fff' : '#111'}
+      />
+      {companies.map((option) => (
+        <Picker.Item
+          key={option.value}
+          label={option.label}
+          value={option.value}
+          color={isDark ? '#fff' : '#111'}
+        />
+      ))}
+    </Picker>
+  )}
+</View>
 
         {selectedCompany ? (
           <ThemedText style={styles.selectedText}>
@@ -97,14 +120,18 @@ export default function TabTwoScreen() {
           </ThemedText>
           
         )}
-        <Button
-          title="Cerrar sesión"
-          onPress={async () => {
-            await clearSelectedCompany();
-            await signOut();
-            router.replace('/login');
-          }}
-        />
+        <View style={styles.logoutContainer}>
+          <Pressable
+            style={styles.logoutButton}
+            onPress={async () => {
+              await clearSelectedCompany();
+              await signOut();
+              router.replace('/login');
+            }}
+          >
+            <ThemedText style={styles.logoutButtonText}>Cerrar sesión</ThemedText>
+          </Pressable>
+        </View>
       </ThemedView>
       
     </ParallaxScrollView>
@@ -117,6 +144,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  logoutContainer: {
+    marginTop: 8,
+    alignItems: 'flex-end',
+  },
+
+  logoutButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(220, 38, 38, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.35)',
+  },
+
+  logoutButtonText: {
+    color: '#b91c1c',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  
   infoBox: {
     gap: 6,
     marginTop: 12,
@@ -140,27 +187,35 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   pickerContainer: {
-    borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    height: 44,
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  pickerLoadingContainer: {
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  picker: {
-    height: 44,
-    width: '100%',
-  },
-  pickerItem: {
-    fontSize: 14,
-    height: 44,
-  },
+  borderWidth: 0,
+  borderRadius: 10,
+  minHeight: 56,
+  justifyContent: 'center',
+  paddingHorizontal: 4,
+},
+
+pickerLoadingContainer: {
+  minHeight: 56,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+picker: {
+  width: '100%',
+  minHeight: 56,
+  ...Platform.select({
+    android: {
+      height: 56,
+    },
+    ios: {
+      height: 180,
+    },
+  }),
+},
+
+pickerItem: {
+  fontSize: 14,
+},
   selectedText: {
     marginTop: 4,
   },
