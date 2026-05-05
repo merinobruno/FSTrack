@@ -1,5 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { getFinnegansToken } from '@/utils/get-finnegans-token';
 
 type CompanyOption = {
   label: string;
@@ -20,28 +22,10 @@ const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 const COMPANY_STORAGE_KEY = 'fstrack_selected_company';
 
 export function CompanyProvider({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<CompanyOption | null>(null);
   const [loadingCompanies, setLoadingCompanies] = useState(false);
-
-  const client_id = 'a95197901b600187ba9e7712e547482e';
-  const client_secret = 'a38d9c762c5108bbb5800c4b7b49a2f1';
-
-  const tokenUrl =
-    'https://api.teamplace.finneg.com/api/oauth/token?grant_type=client_credentials&client_id=' +
-    client_id +
-    '&client_secret=' +
-    client_secret;
-
-  const getToken = async () => {
-    const tokenResponse = await fetch(tokenUrl);
-
-    if (!tokenResponse.ok) {
-      throw new Error(`Token request failed: ${tokenResponse.status}`);
-    }
-
-    return await tokenResponse.text();
-  };
 
   const loadStoredCompanyValue = async () => {
     try {
@@ -70,10 +54,11 @@ export function CompanyProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshCompanies = async () => {
+    if (!user?.token) return;
     try {
       setLoadingCompanies(true);
 
-      const token = await getToken();
+      const token = await getFinnegansToken(user.token);
 
       const response = await fetch(
         `https://api.finneg.com/api/empresaSucursal/list?ACCESS_TOKEN=${token}`
@@ -144,7 +129,7 @@ const options: CompanyOption[] = activeRows
 
   useEffect(() => {
     refreshCompanies();
-  }, []);
+  }, [user?.token]);
 
   const setSelectedCompanyByValue = async (value: string) => {
     const found = companies.find((company) => company.value === value) || null;

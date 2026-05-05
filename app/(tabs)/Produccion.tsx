@@ -15,7 +15,11 @@ import SendConfirmationModal from '@/components/SendConfirmationModal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts } from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
+import { ApiError, getFriendlyError, NETWORK_ERROR, TOKEN_ERROR } from '@/utils/api-error';
+import { getFinnegansToken } from '@/utils/get-finnegans-token';
+import { sendLog } from '@/utils/send-log';
 import AntDesign from '@expo/vector-icons/AntDesign';
 
 const isEmptyValue = (value: any) =>
@@ -221,13 +225,14 @@ function SelectField({
 export default function TabTwoScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const isDark = colorScheme === 'dark';
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [loadingHaciendaCategorias, setLoadingHaciendaCategorias] = useState(false);
   const [loadingDepositos, setLoadingDepositos] = useState(false);
   const [apiResponse, setApiResponse] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
 
   const [loteOptions, setLoteOptions] = useState<SelectOption[]>([]);
@@ -251,23 +256,9 @@ export default function TabTwoScreen() {
     createEmptyMovimientoItem(),
   ]);
 
-  const client_id = 'a95197901b600187ba9e7712e547482e';
-  const client_secret = 'a38d9c762c5108bbb5800c4b7b49a2f1';
-
-  const tokenUrl =
-    'https://api.teamplace.finneg.com/api/oauth/token?grant_type=client_credentials&client_id=' +
-    client_id +
-    '&client_secret=' +
-    client_secret;
-
   const getToken = async () => {
-    const tokenResponse = await fetch(tokenUrl);
-
-    if (!tokenResponse.ok) {
-      throw new Error(`Token request failed: ${tokenResponse.status}`);
-    }
-
-    return await tokenResponse.text();
+    if (!user?.token) throw new Error('No autenticado.');
+    return getFinnegansToken(user.token);
   };
 
   const loadLotes = async () => {
@@ -448,7 +439,7 @@ export default function TabTwoScreen() {
 
   const submitProduccion = async () => {
     if (!selectedCompany) {
-      setError('Seleccioná una empresa en Home antes de enviar.');
+      setError({ title: 'Seleccioná una empresa en Home antes de enviar.' });
       return;
     }
     setLoading(true);
@@ -456,24 +447,27 @@ export default function TabTwoScreen() {
     setApiResponse(null);
 
     try {
-      const tokenData = await getToken();
-      const payload = buildPayload();
+      let tokenData: string;
+      try {
+        tokenData = await getToken();
+      } catch {
+        setError(TOKEN_ERROR);
+        return;
+      }
 
+      const payload = buildPayload();
       console.log('Payload:', JSON.stringify(payload, null, 2));
 
       const apiCall = await fetch(
         'https://api.finneg.com/api/produccionLeche?ACCESS_TOKEN=' + tokenData,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         }
       );
 
       const responseText = await apiCall.text();
-
       let parsedResponse: any;
       try {
         parsedResponse = JSON.parse(responseText);
@@ -482,15 +476,31 @@ export default function TabTwoScreen() {
       }
 
       if (!apiCall.ok) {
-        throw new Error(
-          `API request failed: ${apiCall.status} - ${JSON.stringify(parsedResponse)}`
-        );
+        const friendlyError = getFriendlyError(apiCall.status, parsedResponse);
+        setError(friendlyError);
+        if (user?.token) sendLog(user.token, {
+          form_type: 'PRODUCCION',
+          lote: loteCodigo || null,
+          categoria: haciendaCategoriaCodigo || null,
+          cantidad: parseInt(cabezas) || null,
+          deposito: movimientos[0]?.LoteCodigo || null,
+          status: 'ERROR',
+          error_detail: friendlyError.title,
+        });
+        return;
       }
 
       setApiResponse(parsedResponse);
-    } catch (err: any) {
-      console.error('Error sending data:', err);
-      setError(err.message || 'Unknown error');
+      if (user?.token) sendLog(user.token, {
+        form_type: 'PRODUCCION',
+        lote: loteCodigo || null,
+        categoria: haciendaCategoriaCodigo || null,
+        cantidad: parseInt(cabezas) || null,
+        deposito: movimientos[0]?.LoteCodigo || null,
+        status: 'SUCCESS',
+      });
+    } catch {
+      setError(NETWORK_ERROR);
     } finally {
       setLoading(false);
     }
@@ -498,7 +508,7 @@ export default function TabTwoScreen() {
 
   const handleSendPress = () => {
     if (!selectedCompany) {
-      setError('Seleccioná una empresa en Home antes de enviar.');
+      setError({ title: 'Seleccioná una empresa en Home antes de enviar.' });
       return;
     }
 
@@ -731,7 +741,14 @@ export default function TabTwoScreen() {
 
         {loading && <ActivityIndicator />}
 
-        {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
+        {error && (
+          <View style={styles.errorBox}>
+            <ThemedText style={styles.errorTitle}>{error.title}</ThemedText>
+            {error.detail && (
+              <ThemedText style={styles.errorDetail}>{error.detail}</ThemedText>
+            )}
+          </View>
+        )}
         <SendConfirmationModal
           visible={confirmVisible}
           title="¿Estás seguro?"
@@ -831,7 +848,24 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  errorText: { color: 'red' },
+  errorBox: {
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
+    borderColor: 'rgba(220, 38, 38, 0.3)',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    gap: 4,
+  },
+  errorTitle: {
+    color: '#b91c1c',
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
+  errorDetail: {
+    color: '#b91c1c',
+    fontSize: 13,
+    opacity: 0.85,
+  },
 
   responseBox: {
     marginTop: 8,

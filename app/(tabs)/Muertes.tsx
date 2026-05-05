@@ -15,7 +15,11 @@ import SendConfirmationModal from '@/components/SendConfirmationModal';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Fonts } from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
+import { ApiError, getFriendlyError, NETWORK_ERROR, TOKEN_ERROR } from '@/utils/api-error';
+import { getFinnegansToken } from '@/utils/get-finnegans-token';
+import { sendLog } from '@/utils/send-log';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 /* ================= HELPERS ================= */
 
@@ -218,10 +222,11 @@ function Select({
 
 export default function TabTwoScreen() {
   const { selectedCompany } = useCompany();
+  const { user } = useAuth();
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [apiResponse, setApiResponse] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
 
   /* SELECT DATA */
   const [loteOptions, setLoteOptions] = useState<SelectOption[]>([]);
@@ -242,19 +247,9 @@ export default function TabTwoScreen() {
 
   const [items, setItems] = useState<Item[]>([createEmptyItem()]);
 
-  const client_id = 'a95197901b600187ba9e7712e547482e';
-  const client_secret = 'a38d9c762c5108bbb5800c4b7b49a2f1';
-
   const getToken = async () => {
-    const res = await fetch(
-      `https://api.teamplace.finneg.com/api/oauth/token?grant_type=client_credentials&client_id=${client_id}&client_secret=${client_secret}`
-    );
-
-    if (!res.ok) {
-      throw new Error(`Token request failed: ${res.status}`);
-    }
-
-    return await res.text();
+    if (!user?.token) throw new Error('No autenticado.');
+    return getFinnegansToken(user.token);
   };
 
   /* ================= LOAD SELECTORS ================= */
@@ -368,7 +363,7 @@ export default function TabTwoScreen() {
 
   const submitMuertes = async () => {
     if (!selectedCompany) {
-      setError('Seleccioná una empresa en Home antes de enviar.');
+      setError({ title: 'Seleccioná una empresa en Home antes de enviar.' });
       return;
     }
 
@@ -376,10 +371,15 @@ export default function TabTwoScreen() {
     setError(null);
 
     try {
-      const token = await getToken();
+      let token: string;
+      try {
+        token = await getToken();
+      } catch {
+        setError(TOKEN_ERROR);
+        return;
+      }
 
       const payload = buildPayload();
-
       console.log('Payload:', JSON.stringify(payload, null, 2));
 
       const res = await fetch(
@@ -392,7 +392,6 @@ export default function TabTwoScreen() {
       );
 
       const text = await res.text();
-
       let parsed: any;
       try {
         parsed = JSON.parse(text);
@@ -401,14 +400,29 @@ export default function TabTwoScreen() {
       }
 
       if (!res.ok) {
-        throw new Error(
-          `API request failed: ${res.status} - ${JSON.stringify(parsed)}`
-        );
+        const friendlyError = getFriendlyError(res.status, parsed);
+        setError(friendlyError);
+        if (user?.token) sendLog(user.token, {
+          form_type: 'MUERTES',
+          lote: items[0]?.LoteOrigen || null,
+          categoria: items[0]?.CodigoCategoriahacienda || null,
+          cantidad: parseInt(items[0]?.Cab) || null,
+          status: 'ERROR',
+          error_detail: friendlyError.title,
+        });
+        return;
       }
 
       setApiResponse(parsed);
-    } catch (e: any) {
-      setError(e.message || 'Error enviando');
+      if (user?.token) sendLog(user.token, {
+        form_type: 'MUERTES',
+        lote: items[0]?.LoteOrigen || null,
+        categoria: items[0]?.CodigoCategoriahacienda || null,
+        cantidad: parseInt(items[0]?.Cab) || null,
+        status: 'SUCCESS',
+      });
+    } catch {
+      setError(NETWORK_ERROR);
     } finally {
       setLoading(false);
     }
@@ -416,7 +430,7 @@ export default function TabTwoScreen() {
 
   const handleSendPress = () => {
   if (!selectedCompany) {
-    setError('Seleccioná una empresa en Home antes de enviar.');
+    setError({ title: 'Seleccioná una empresa en Home antes de enviar.' });
     return;
   }
 
@@ -550,7 +564,14 @@ export default function TabTwoScreen() {
 
         {loading && <ActivityIndicator />}
 
-        {error && <ThemedText style={styles.errorText}>{error}</ThemedText>}
+        {error && (
+          <View style={styles.errorBox}>
+            <ThemedText style={styles.errorTitle}>{error.title}</ThemedText>
+            {error.detail && (
+              <ThemedText style={styles.errorDetail}>{error.detail}</ThemedText>
+            )}
+          </View>
+        )}
 
         <SendConfirmationModal
           visible={confirmVisible}
@@ -650,7 +671,24 @@ pickerItem: {
     marginTop: 8,
   },
 
-  errorText: { color: 'red' },
+  errorBox: {
+    backgroundColor: 'rgba(220, 38, 38, 0.08)',
+    borderColor: 'rgba(220, 38, 38, 0.3)',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    gap: 4,
+  },
+  errorTitle: {
+    color: '#b91c1c',
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
+  errorDetail: {
+    color: '#b91c1c',
+    fontSize: 13,
+    opacity: 0.85,
+  },
 
   responseText: {
     fontSize: 12,
