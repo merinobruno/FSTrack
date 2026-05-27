@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://fstrack-backend.onrender.com';
+import { API_BASE_URL } from '@/constants/api';
 
 export async function getFinnegansToken(appToken: string): Promise<string> {
   const res = await fetch(`${API_BASE_URL}/finnegans/token`, {

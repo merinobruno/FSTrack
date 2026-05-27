@@ -1,10 +1,8 @@
-import { Picker } from '@react-native-picker/picker';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Button,
-  Platform,
   StyleSheet,
   TextInput,
   View
@@ -17,9 +15,11 @@ import { ThemedView } from '@/components/themed-view';
 import { Fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
-import { ApiError, getFriendlyError, NETWORK_ERROR, TOKEN_ERROR } from '@/utils/api-error';
+import { useSubmissions } from '@/contexts/SubmissionsContext';
+import { ApiError } from '@/utils/api-error';
 import { getFinnegansToken } from '@/utils/get-finnegans-token';
-import { sendLog } from '@/utils/send-log';
+import { getCached, setCached } from '@/utils/options-cache';
+import { SearchableSelect } from '@/components/searchable-select';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 /* ================= HELPERS ================= */
 
@@ -124,7 +124,7 @@ const createEmptyItem = (): Item => ({
 
 /* ================= COMPONENTS ================= */
 
-function Input({ label, value, onChangeText, numeric = false }: any) {
+function Input({ label, value, onChangeText, numeric = false, editable = true }: any) {
   const colorScheme = useColorScheme() ?? 'light';
   const isDark = colorScheme === 'dark';
 
@@ -146,86 +146,30 @@ function Input({ label, value, onChangeText, numeric = false }: any) {
             {
               color: isDark ? '#fff' : '#111',
               backgroundColor: 'transparent',
+              opacity: editable ? 1 : 0.6,
             },
           ]}
           value={value}
           onChangeText={onChangeText}
           keyboardType={numeric ? 'numeric' : 'default'}
           placeholderTextColor={isDark ? '#aaa' : '#666'}
+          editable={editable}
         />
       </View>
     </>
   );
 }
 
-function Select({
-  label,
-  value,
-  options,
-  onChange,
-  loading,
-}: any) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
-
-  return (
-    <>
-      <ThemedText>{label}</ThemedText>
-      <View
-        style={[
-          styles.pickerContainer,
-          {
-            backgroundColor: isDark ? '#1f1f1f' : '#ebebeb',
-            borderColor: isDark ? '#555' : '#999',
-          },
-        ]}
-      >
-        {loading ? (
-          <View style={styles.pickerLoadingContainer}>
-            <ActivityIndicator />
-          </View>
-        ) : (
-          <Picker
-            selectedValue={value}
-            onValueChange={(v) => onChange(String(v))}
-            style={[
-              styles.picker,
-              {
-                color: isDark ? '#fff' : '#111',
-                backgroundColor: 'transparent',
-              },
-            ]}
-            dropdownIconColor={isDark ? '#fff' : '#111'}
-            mode="dropdown"
-          >
-            <Picker.Item
-              label="Seleccionar..."
-              value=""
-              color={isDark ? '#fff' : '#111'}
-            />
-            {options.map((o: SelectOption) => (
-              <Picker.Item
-                key={o.value}
-                label={o.label}
-                value={o.value}
-                color={isDark ? '#fff' : '#111'}
-              />
-            ))}
-          </Picker>
-        )}
-      </View>
-    </>
-  );
-}
 
 /* ================= MAIN ================= */
 
 export default function TabTwoScreen() {
   const { selectedCompany } = useCompany();
   const { user } = useAuth();
+  const { addAndSubmit } = useSubmissions();
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [apiResponse, setApiResponse] = useState<any>(null);
+  const [submitted, setSubmitted] = useState<'sent' | 'queued' | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
 
   /* SELECT DATA */
@@ -255,25 +199,21 @@ export default function TabTwoScreen() {
   /* ================= LOAD SELECTORS ================= */
 
   const loadLotes = async () => {
+    const cacheKey = `lotes_${user?.domainId}`;
+    const cached = await getCached<SelectOption[]>(cacheKey);
+    if (cached) { setLoteOptions(cached); return; }
     setLoadingLote(true);
     try {
       const token = await getToken();
-      const res = await fetch(
-        `https://api.finneg.com/api/Lote/list?ACCESS_TOKEN=${token}`
-      );
-
-      if (!res.ok) {
-        throw new Error(`Lote request failed: ${res.status}`);
-      }
-
+      const res = await fetch(`https://api.finneg.com/api/Lote/list?ACCESS_TOKEN=${token}`);
+      if (!res.ok) throw new Error(`Lote request failed: ${res.status}`);
       const data = await res.json();
-
-      setLoteOptions(
-        (Array.isArray(data) ? data : []).map((l: any) => ({
-          label: l.nombre,
-          value: l.codigo,
-        }))
-      );
+      const options: SelectOption[] = (Array.isArray(data) ? data : []).map((l: any) => ({
+        label: l.nombre ?? l.Nombre ?? l.codigo ?? '',
+        value: l.codigo ?? '',
+      })).filter((o: SelectOption) => o.label && o.value);
+      setLoteOptions(options);
+      await setCached(cacheKey, options);
     } catch (e: any) {
       setError(e.message || 'Error cargando lotes');
     } finally {
@@ -282,25 +222,21 @@ export default function TabTwoScreen() {
   };
 
   const loadCategorias = async () => {
+    const cacheKey = `categorias_${user?.domainId}`;
+    const cached = await getCached<SelectOption[]>(cacheKey);
+    if (cached) { setCategoriaOptions(cached); return; }
     setLoadingCategoria(true);
     try {
       const token = await getToken();
-      const res = await fetch(
-        `https://api.finneg.com/api/haciendaCategoria/list?ACCESS_TOKEN=${token}`
-      );
-
-      if (!res.ok) {
-        throw new Error(`Categoria request failed: ${res.status}`);
-      }
-
+      const res = await fetch(`https://api.finneg.com/api/haciendaCategoria/list?ACCESS_TOKEN=${token}`);
+      if (!res.ok) throw new Error(`Categoria request failed: ${res.status}`);
       const data = await res.json();
-
-      setCategoriaOptions(
-        (Array.isArray(data) ? data : []).map((c: any) => ({
-          label: c.nombre || c.descripcion,
-          value: c.codigo,
-        }))
-      );
+      const options: SelectOption[] = (Array.isArray(data) ? data : []).map((c: any) => ({
+        label: c.nombre ?? c.Nombre ?? c.descripcion ?? c.codigo ?? '',
+        value: c.codigo ?? '',
+      })).filter((o: SelectOption) => o.label && o.value);
+      setCategoriaOptions(options);
+      await setCached(cacheKey, options);
     } catch (e: any) {
       setError(e.message || 'Error cargando categorías');
     } finally {
@@ -317,7 +253,16 @@ export default function TabTwoScreen() {
 
   const updateItem = (i: number, field: keyof Item, val: string) => {
     setItems((prev) =>
-      prev.map((it, idx) => (idx === i ? { ...it, [field]: val } : it))
+      prev.map((it, idx) => {
+        if (idx !== i) return it;
+        const updated = { ...it, [field]: val };
+        if (field === 'KgCab' || field === 'Cab') {
+          const kgcab = parseFloat(updated.KgCab) || 0;
+          const cab = parseFloat(updated.Cab) || 0;
+          updated.KgTotales = kgcab > 0 && cab > 0 ? (kgcab * cab).toString() : '';
+        }
+        return updated;
+      })
     );
   };
 
@@ -366,66 +311,22 @@ export default function TabTwoScreen() {
       setError({ title: 'Seleccioná una empresa en Home antes de enviar.' });
       return;
     }
-
     setLoading(true);
     setError(null);
+    setSubmitted(null);
 
-    try {
-      let token: string;
-      try {
-        token = await getToken();
-      } catch {
-        setError(TOKEN_ERROR);
-        return;
-      }
+    const result = await addAndSubmit({
+      formType: 'MUERTES',
+      payload: buildPayload(),
+      companyLabel: selectedCompany.label,
+      lote: items[0]?.LoteOrigen || null,
+      categoria: items[0]?.CodigoCategoriahacienda || null,
+      cantidad: parseInt(items[0]?.Cab) || null,
+    });
 
-      const payload = buildPayload();
-      console.log('Payload:', JSON.stringify(payload, null, 2));
-
-      const res = await fetch(
-        `https://api.finneg.com/api/MuerteHacienda?ACCESS_TOKEN=${token}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const text = await res.text();
-      let parsed: any;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        parsed = text;
-      }
-
-      if (!res.ok) {
-        const friendlyError = getFriendlyError(res.status, parsed);
-        setError(friendlyError);
-        if (user?.token) sendLog(user.token, {
-          form_type: 'MUERTES',
-          lote: items[0]?.LoteOrigen || null,
-          categoria: items[0]?.CodigoCategoriahacienda || null,
-          cantidad: parseInt(items[0]?.Cab) || null,
-          status: 'ERROR',
-          error_detail: friendlyError.title,
-        });
-        return;
-      }
-
-      setApiResponse(parsed);
-      if (user?.token) sendLog(user.token, {
-        form_type: 'MUERTES',
-        lote: items[0]?.LoteOrigen || null,
-        categoria: items[0]?.CodigoCategoriahacienda || null,
-        cantidad: parseInt(items[0]?.Cab) || null,
-        status: 'SUCCESS',
-      });
-    } catch {
-      setError(NETWORK_ERROR);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
+    if (result.status === 'error') setError({ title: result.detail });
+    else setSubmitted(result.status);
   };
 
   const handleSendPress = () => {
@@ -482,21 +383,19 @@ export default function TabTwoScreen() {
               Item {i + 1}
             </ThemedText>
 
-            <Select
+            <SearchableSelect
               label="LoteOrigen"
-              value={item.LoteOrigen}
+              selectedValue={item.LoteOrigen}
               options={loteOptions}
-              onChange={(v: string) => updateItem(i, 'LoteOrigen', v)}
+              onValueChange={(v) => updateItem(i, 'LoteOrigen', v)}
               loading={loadingLote}
             />
 
-            <Select
+            <SearchableSelect
               label="CodigoCategoriahacienda"
-              value={item.CodigoCategoriahacienda}
+              selectedValue={item.CodigoCategoriahacienda}
               options={categoriaOptions}
-              onChange={(v: string) =>
-                updateItem(i, 'CodigoCategoriahacienda', v)
-              }
+              onValueChange={(v) => updateItem(i, 'CodigoCategoriahacienda', v)}
               loading={loadingCategoria}
             />
 
@@ -515,10 +414,11 @@ export default function TabTwoScreen() {
             />
 
             <Input
-              label="KgTotales"
+              label="KgTotales (automático)"
               value={item.KgTotales}
-              onChangeText={(v: string) => updateItem(i, 'KgTotales', v)}
+              onChangeText={() => {}}
               numeric
+              editable={false}
             />
 
             <Input
@@ -533,14 +433,11 @@ export default function TabTwoScreen() {
               onChangeText={(v: string) => updateItem(i, 'Tropa', v)}
             />
 
-            <Select
+            <SearchableSelect
               label="EventoHaciendaClasificacionID"
-              value={item.EventoHaciendaClasificacionID}
+              selectedValue={item.EventoHaciendaClasificacionID}
               options={CLASIFICACION_OPTIONS}
-              onChange={(v: string) =>
-                updateItem(i, 'EventoHaciendaClasificacionID', v)
-              }
-              loading={false}
+              onValueChange={(v) => updateItem(i, 'EventoHaciendaClasificacionID', v)}
             />
 
             <View style={styles.itemButtons}>
@@ -570,6 +467,16 @@ export default function TabTwoScreen() {
             {error.detail && (
               <ThemedText style={styles.errorDetail}>{error.detail}</ThemedText>
             )}
+          </View>
+        )}
+        {submitted === 'sent' && (
+          <View style={styles.successBox}>
+            <ThemedText style={styles.successText}>Enviado correctamente.</ThemedText>
+          </View>
+        )}
+        {submitted === 'queued' && (
+          <View style={styles.queueBox}>
+            <ThemedText style={styles.queueText}>Sin conexión. Guardado para enviar cuando se restaure la red.</ThemedText>
           </View>
         )}
 
@@ -631,38 +538,6 @@ input: {
   paddingVertical: 0,
 },
 
-pickerContainer: {
-  borderWidth: 0,
-  borderRadius: 10,
-  minHeight: 56,
-  justifyContent: 'center',
-  paddingHorizontal: 4,
-},
-
-pickerLoadingContainer: {
-  minHeight: 56,
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-
-picker: {
-  width: '100%',
-  minHeight: 56,
-  backgroundColor: 'transparent',
-  borderWidth: 0,
-  ...Platform.select({
-    android: {
-      height: 56,
-    },
-    ios: {
-      height: 180,
-    },
-  }),
-},
-
-pickerItem: {
-  fontSize: 14,
-},
 
   itemButtons: {
     flexDirection: 'row',
@@ -671,6 +546,29 @@ pickerItem: {
     marginTop: 8,
   },
 
+  successBox: {
+    backgroundColor: 'rgba(16,185,129,0.08)',
+    borderColor: 'rgba(16,185,129,0.3)',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+  },
+  successText: {
+    color: '#059669',
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
+  queueBox: {
+    backgroundColor: 'rgba(234,179,8,0.08)',
+    borderColor: 'rgba(234,179,8,0.35)',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+  },
+  queueText: {
+    color: '#b45309',
+    fontSize: 14,
+  },
   errorBox: {
     backgroundColor: 'rgba(220, 38, 38, 0.08)',
     borderColor: 'rgba(220, 38, 38, 0.3)',
@@ -690,12 +588,4 @@ pickerItem: {
     opacity: 0.85,
   },
 
-  responseText: {
-    fontSize: 12,
-    fontFamily: Platform.select({
-      ios: 'Courier',
-      android: 'monospace',
-      web: 'monospace',
-    }),
-  },
 });

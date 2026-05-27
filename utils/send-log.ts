@@ -1,11 +1,12 @@
-const API_BASE_URL = 'https://fstrack-backend.onrender.com';
+import { API_BASE_URL } from '@/constants/api';
 
 export type LogPayload = {
-  form_type: 'PRODUCCION' | 'NACIMIENTOS' | 'MUERTES';
+  form_type: 'PRODUCCION' | 'NACIMIENTOS' | 'MUERTES' | 'TRASLADOS';
   lote?: string | null;
   categoria?: string | null;
   cantidad?: number | null;
   deposito?: string | null;
+  company_label?: string | null;
   status: 'SUCCESS' | 'ERROR';
   error_detail?: string | null;
 };

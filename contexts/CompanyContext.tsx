@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getFinnegansToken } from '@/utils/get-finnegans-token';
+import { API_BASE_URL } from '@/constants/api';
 
 type CompanyOption = {
   label: string;
@@ -110,12 +111,28 @@ const options: CompanyOption[] = activeRows
   }))
   .filter((item: CompanyOption) => item.label && item.value);
 
-      setCompanies(options);
+      // Filter to account-assigned companies; empty list = no restriction
+      let allowedCodes: string[] = [];
+      try {
+        const acRes = await fetch(`${API_BASE_URL}/auth/my-companies`, {
+          headers: { Authorization: `Bearer ${user.token}` },
+        });
+        if (acRes.ok) {
+          const acData = await acRes.json();
+          allowedCodes = acData.codes ?? [];
+        }
+      } catch {}
+
+      const filtered = allowedCodes.length > 0
+        ? options.filter((c) => allowedCodes.includes(c.value))
+        : options;
+
+      setCompanies(filtered);
 
       const storedValue = await loadStoredCompanyValue();
 
       if (storedValue) {
-        const restored = options.find((company) => company.value === storedValue) || null;
+        const restored = filtered.find((company) => company.value === storedValue) || null;
         setSelectedCompany(restored);
       } else {
         setSelectedCompany(null);

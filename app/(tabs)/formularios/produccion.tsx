@@ -1,10 +1,8 @@
-import { Picker } from '@react-native-picker/picker';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Button,
-  Platform,
   StyleSheet,
   TextInput,
   View
@@ -17,9 +15,11 @@ import { ThemedView } from '@/components/themed-view';
 import { Fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
-import { ApiError, getFriendlyError, NETWORK_ERROR, TOKEN_ERROR } from '@/utils/api-error';
+import { useSubmissions } from '@/contexts/SubmissionsContext';
+import { ApiError } from '@/utils/api-error';
 import { getFinnegansToken } from '@/utils/get-finnegans-token';
-import { sendLog } from '@/utils/send-log';
+import { getCached, setCached } from '@/utils/options-cache';
+import { SearchableSelect } from '@/components/searchable-select';
 import AntDesign from '@expo/vector-icons/AntDesign';
 
 const isEmptyValue = (value: any) =>
@@ -152,81 +152,14 @@ function InputField({
   );
 }
 
-type SelectFieldProps = {
-  label: string;
-  selectedValue: string;
-  options: SelectOption[];
-  onValueChange: (value: string) => void;
-  placeholder?: string;
-  loading?: boolean;
-};
-
-function SelectField({
-  label,
-  selectedValue,
-  options,
-  onValueChange,
-  placeholder = 'Seleccionar...',
-  loading = false,
-}: SelectFieldProps) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
-
-  return (
-    <>
-      <ThemedText>{label}</ThemedText>
-      <View
-        style={[
-          styles.pickerContainer,
-          {
-            backgroundColor: isDark ? '#1f1f1f' : '#ebebeb',
-            borderColor: isDark ? '#555' : '#999',
-          },
-        ]}
-      >
-        {loading ? (
-          <View style={styles.pickerLoadingContainer}>
-            <ActivityIndicator />
-          </View>
-        ) : (
-          <Picker
-            selectedValue={selectedValue}
-            onValueChange={(value) => onValueChange(String(value))}
-            style={[
-              styles.picker,
-              {
-                color: isDark ? '#fff' : '#111',
-                backgroundColor: 'transparent',
-              },
-            ]}
-            dropdownIconColor={isDark ? '#fff' : '#111'}
-            mode="dropdown"
-          >
-            <Picker.Item
-              label={placeholder}
-              value=""
-              color={isDark ? '#fff' : '#111'}
-            />
-            {options.map((option) => (
-              <Picker.Item
-                key={option.value}
-                label={option.label}
-                value={option.value}
-                color={isDark ? '#fff' : '#111'}
-              />
-            ))}
-          </Picker>
-        )}
-      </View>
-    </>
-  );
-}
 
 export default function TabTwoScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const isDark = colorScheme === 'dark';
   const { user } = useAuth();
+  const { addAndSubmit } = useSubmissions();
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState<'sent' | 'queued' | null>(null);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [loadingHaciendaCategorias, setLoadingHaciendaCategorias] = useState(false);
@@ -262,118 +195,75 @@ export default function TabTwoScreen() {
   };
 
   const loadLotes = async () => {
+    const cacheKey = `lotes_${user?.domainId}`;
+    const cached = await getCached<SelectOption[]>(cacheKey);
+    if (cached) { setLoteOptions(cached); return; }
+    setLoadingLotes(true);
     try {
-      setLoadingLotes(true);
-
       const token = await getToken();
-
-      const response = await fetch(
-        `https://api.finneg.com/api/Lote/list?ACCESS_TOKEN=${token}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`Lote request failed: ${response.status}`);
-      }
-
+      const response = await fetch(`https://api.finneg.com/api/Lote/list?ACCESS_TOKEN=${token}`);
+      if (!response.ok) throw new Error(`Lote request failed: ${response.status}`);
       const data = await response.json();
-
       const options: SelectOption[] = (Array.isArray(data) ? data : [])
         .map((item: any) => ({
           label: item.nombre ?? item.Nombre ?? item.codigo ?? item.Codigo ?? '',
           value: item.codigo ?? item.Codigo ?? '',
         }))
         .filter((item: SelectOption) => item.label && item.value);
-
       setLoteOptions(options);
+      await setCached(cacheKey, options);
     } catch (err: any) {
       console.error('Error loading lotes:', err);
-      setError(err.message || 'Error loading lotes');
     } finally {
       setLoadingLotes(false);
     }
   };
 
   const loadHaciendaCategorias = async () => {
+    const cacheKey = `categorias_${user?.domainId}`;
+    const cached = await getCached<SelectOption[]>(cacheKey);
+    if (cached) { setHaciendaCategoriaOptions(cached); return; }
+    setLoadingHaciendaCategorias(true);
     try {
-      setLoadingHaciendaCategorias(true);
-
       const token = await getToken();
-
-      const response = await fetch(
-        `https://api.finneg.com/api/haciendaCategoria/list?ACCESS_TOKEN=${token}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`HaciendaCategoria request failed: ${response.status}`);
-      }
-
+      const response = await fetch(`https://api.finneg.com/api/haciendaCategoria/list?ACCESS_TOKEN=${token}`);
+      if (!response.ok) throw new Error(`HaciendaCategoria request failed: ${response.status}`);
       const data = await response.json();
-
       const options: SelectOption[] = (Array.isArray(data) ? data : [])
         .map((item: any) => ({
-          label:
-            item.nombre ??
-            item.Nombre ??
-            item.descripcion ??
-            item.Descripcion ??
-            item.codigo ??
-            item.Codigo ??
-            '',
-          value:
-            item.codigo ??
-            item.Codigo ??
-            item.value ??
-            '',
+          label: item.nombre ?? item.Nombre ?? item.descripcion ?? item.Descripcion ?? item.codigo ?? item.Codigo ?? '',
+          value: item.codigo ?? item.Codigo ?? item.value ?? '',
         }))
         .filter((item: SelectOption) => item.label && item.value);
-
       setHaciendaCategoriaOptions(options);
+      await setCached(cacheKey, options);
     } catch (err: any) {
       console.error('Error loading haciendaCategoria:', err);
-      setError(err.message || 'Error loading haciendaCategoria');
     } finally {
       setLoadingHaciendaCategorias(false);
     }
   };
 
   const loadDepositos = async () => {
+    const cacheKey = `depositos_${user?.domainId}`;
+    const cached = await getCached<SelectOption[]>(cacheKey);
+    if (cached) { setDepositoOptions(cached); return; }
+    setLoadingDepositos(true);
     try {
-      setLoadingDepositos(true);
-
       const token = await getToken();
-
-      const response = await fetch(
-        `https://api.finneg.com/api/depositos/list?ACCESS_TOKEN=${token}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`Depositos request failed: ${response.status}`);
-      }
-
+      const response = await fetch(`https://api.finneg.com/api/depositos/list?ACCESS_TOKEN=${token}`);
+      if (!response.ok) throw new Error(`Depositos request failed: ${response.status}`);
       const data = await response.json();
-
       const options: SelectOption[] = (Array.isArray(data) ? data : [])
         .map((item: any) => ({
-          label:
-            item.nombre ??
-            item.Nombre ??
-            item.descripcion ??
-            item.Descripcion ??
-            item.codigo ??
-            item.Codigo ??
-            '',
-          value:
-            item.codigo ??
-            item.Codigo ??
-            item.value ??
-            '',
+          label: item.nombre ?? item.Nombre ?? item.descripcion ?? item.Descripcion ?? item.codigo ?? item.Codigo ?? '',
+          value: item.codigo ?? item.Codigo ?? item.value ?? '',
         }))
         .filter((item: SelectOption) => item.label && item.value);
-
       setDepositoOptions(options);
+      await setCached(cacheKey, options);
     } catch (err: any) {
       console.error('Error loading depositos:', err);
-      setError(err.message || 'Error loading depositos');
     } finally {
       setLoadingDepositos(false);
     }
@@ -444,66 +334,21 @@ export default function TabTwoScreen() {
     }
     setLoading(true);
     setError(null);
-    setApiResponse(null);
+    setSubmitted(null);
 
-    try {
-      let tokenData: string;
-      try {
-        tokenData = await getToken();
-      } catch {
-        setError(TOKEN_ERROR);
-        return;
-      }
+    const result = await addAndSubmit({
+      formType: 'PRODUCCION',
+      payload: buildPayload(),
+      companyLabel: selectedCompany.label,
+      lote: loteCodigo || null,
+      categoria: haciendaCategoriaCodigo || null,
+      cantidad: parseInt(cabezas) || null,
+      deposito: movimientos[0]?.LoteCodigo || null,
+    });
 
-      const payload = buildPayload();
-      console.log('Payload:', JSON.stringify(payload, null, 2));
-
-      const apiCall = await fetch(
-        'https://api.finneg.com/api/produccionLeche?ACCESS_TOKEN=' + tokenData,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const responseText = await apiCall.text();
-      let parsedResponse: any;
-      try {
-        parsedResponse = JSON.parse(responseText);
-      } catch {
-        parsedResponse = responseText;
-      }
-
-      if (!apiCall.ok) {
-        const friendlyError = getFriendlyError(apiCall.status, parsedResponse);
-        setError(friendlyError);
-        if (user?.token) sendLog(user.token, {
-          form_type: 'PRODUCCION',
-          lote: loteCodigo || null,
-          categoria: haciendaCategoriaCodigo || null,
-          cantidad: parseInt(cabezas) || null,
-          deposito: movimientos[0]?.LoteCodigo || null,
-          status: 'ERROR',
-          error_detail: friendlyError.title,
-        });
-        return;
-      }
-
-      setApiResponse(parsedResponse);
-      if (user?.token) sendLog(user.token, {
-        form_type: 'PRODUCCION',
-        lote: loteCodigo || null,
-        categoria: haciendaCategoriaCodigo || null,
-        cantidad: parseInt(cabezas) || null,
-        deposito: movimientos[0]?.LoteCodigo || null,
-        status: 'SUCCESS',
-      });
-    } catch {
-      setError(NETWORK_ERROR);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
+    if (result.status === 'error') setError({ title: result.detail });
+    else setSubmitted(result.status);
   };
 
   const handleSendPress = () => {
@@ -555,7 +400,7 @@ export default function TabTwoScreen() {
           onChangeText={setDescripcion}
         />
 
-        <SelectField
+        <SearchableSelect
           label="HaciendaCategoriaCodigo"
           selectedValue={haciendaCategoriaCodigo}
           options={haciendaCategoriaOptions}
@@ -564,7 +409,7 @@ export default function TabTwoScreen() {
           loading={loadingHaciendaCategorias}
         />
 
-        <SelectField
+        <SearchableSelect
           label="LoteCodigo"
           selectedValue={loteCodigo}
           options={loteOptions}
@@ -596,7 +441,7 @@ export default function TabTwoScreen() {
               }
             />
 
-            <SelectField
+            <SearchableSelect
               label="LoteCodigo"
               selectedValue={item.LoteCodigo}
               options={depositoOptions}
@@ -749,6 +594,16 @@ export default function TabTwoScreen() {
             )}
           </View>
         )}
+        {submitted === 'sent' && (
+          <View style={styles.successBox}>
+            <ThemedText style={styles.successText}>Enviado correctamente.</ThemedText>
+          </View>
+        )}
+        {submitted === 'queued' && (
+          <View style={styles.queueBox}>
+            <ThemedText style={styles.queueText}>Sin conexión. Guardado para enviar cuando se restaure la red.</ThemedText>
+          </View>
+        )}
         <SendConfirmationModal
           visible={confirmVisible}
           title="¿Estás seguro?"
@@ -823,31 +678,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
 
-  pickerLoadingContainer: {
-    minHeight: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
 
-  picker: {
-    width: '100%',
-    minHeight: 56,
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    ...Platform.select({
-      android: {
-        height: 56,
-      },
-      ios: {
-        height: 180,
-      },
-    }),
+  successBox: {
+    backgroundColor: 'rgba(16,185,129,0.08)',
+    borderColor: 'rgba(16,185,129,0.3)',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
   },
-
-  pickerItem: {
+  successText: {
+    color: '#059669',
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
+  queueBox: {
+    backgroundColor: 'rgba(234,179,8,0.08)',
+    borderColor: 'rgba(234,179,8,0.35)',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+  },
+  queueText: {
+    color: '#b45309',
     fontSize: 14,
   },
-
   errorBox: {
     backgroundColor: 'rgba(220, 38, 38, 0.08)',
     borderColor: 'rgba(220, 38, 38, 0.3)',
@@ -867,17 +721,4 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
 
-  responseBox: {
-    marginTop: 8,
-    gap: 8,
-  },
-
-  responseText: {
-    fontSize: 12,
-    fontFamily: Platform.select({
-      ios: 'Courier',
-      android: 'monospace',
-      web: 'monospace',
-    }),
-  },
 });

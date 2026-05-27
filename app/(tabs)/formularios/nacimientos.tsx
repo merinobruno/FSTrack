@@ -1,10 +1,8 @@
-import { Picker } from '@react-native-picker/picker';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Button,
-  Platform,
   StyleSheet,
   TextInput,
   View
@@ -17,9 +15,11 @@ import { ThemedView } from '@/components/themed-view';
 import { Fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
-import { ApiError, getFriendlyError, NETWORK_ERROR, TOKEN_ERROR } from '@/utils/api-error';
+import { useSubmissions } from '@/contexts/SubmissionsContext';
+import { ApiError } from '@/utils/api-error';
 import { getFinnegansToken } from '@/utils/get-finnegans-token';
-import { sendLog } from '@/utils/send-log';
+import { getCached, setCached } from '@/utils/options-cache';
+import { SearchableSelect } from '@/components/searchable-select';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 /* ================= HELPERS ================= */
 
@@ -88,6 +88,7 @@ type NacimientoItem = {
   Madre: string;
   CantidadMadres: string;
   CantidadKgsCabezaMadre: string;
+  CCMadre: string;
   Hijos: string;
   Cab: string;
   KgCab: string;
@@ -95,6 +96,7 @@ type NacimientoItem = {
   Tropa: string;
   CantidadMuertes: string;
   EventoHaciendaClasificacionID: string;
+  ClasifMuerte: string;
   OrganizacionID: string;
   IDMadre: string;
 };
@@ -106,6 +108,7 @@ const createEmptyItem = (): NacimientoItem => ({
   Madre: '',
   CantidadMadres: '',
   CantidadKgsCabezaMadre: '',
+  CCMadre: '',
   Hijos: '',
   Cab: '',
   KgCab: '',
@@ -113,13 +116,20 @@ const createEmptyItem = (): NacimientoItem => ({
   Tropa: '',
   CantidadMuertes: '',
   EventoHaciendaClasificacionID: '',
+  ClasifMuerte: '',
   OrganizacionID: '',
   IDMadre: '',
 });
 
 /* ================= STATIC OPTIONS ================= */
 
-const CLASIFICACION_OPTIONS: SelectOption[] = [
+const BIRTH_CLASIFICACION_OPTIONS: SelectOption[] = [
+  { label: 'NATURAL', value: 'NATURAL-5' },
+  { label: 'ASISTIDO', value: 'ASISTIDO' },
+  { label: 'CESÁREA', value: 'CESAREA' },
+];
+
+const MUERTE_CLASIFICACION_OPTIONS: SelectOption[] = [
   { label: 'ACCIDENTE', value: 'ACCIDENTE' },
   { label: 'ACIDOSIS', value: 'ACIDOSIS-82' },
   { label: 'AL NACER', value: 'AL NACER-3' },
@@ -127,10 +137,7 @@ const CLASIFICACION_OPTIONS: SelectOption[] = [
   { label: 'DESCONOCIDA', value: 'DESCONOCIDA-78' },
   { label: 'DIARREA NEONATAL', value: 'DIARREA NEONATAL-11' },
   { label: 'EMPASTE', value: 'EMPASTE-81' },
-  {
-    label: 'FOCO INFECCIOSO (USAR DECRIPCIÓN)',
-    value: 'FOCO INFECCIOSO (USAR DECRIPCIÓN)-83',
-  },
+  { label: 'FOCO INFECCIOSO (USAR DECRIPCIÓN)', value: 'FOCO INFECCIOSO (USAR DECRIPCIÓN)-83' },
   { label: 'NEMONIA', value: 'NEMONIA-77' },
   { label: 'TIMPANISMO', value: 'TIMPANISMO-80' },
 ];
@@ -142,6 +149,7 @@ type InputFieldProps = {
   value: string;
   onChangeText: (text: string) => void;
   keyboardType?: 'default' | 'numeric';
+  editable?: boolean;
 };
 
 function InputField({
@@ -149,6 +157,7 @@ function InputField({
   value,
   onChangeText,
   keyboardType = 'default',
+  editable = true,
 }: InputFieldProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const isDark = colorScheme === 'dark';
@@ -171,96 +180,30 @@ function InputField({
             {
               color: isDark ? '#fff' : '#111',
               backgroundColor: 'transparent',
+              opacity: editable ? 1 : 0.6,
             },
           ]}
           value={value}
           onChangeText={onChangeText}
           keyboardType={keyboardType}
           placeholderTextColor={isDark ? '#aaa' : '#666'}
+          editable={editable}
         />
       </View>
     </>
   );
 }
 
-type SelectFieldProps = {
-  label: string;
-  selectedValue: string;
-  options: SelectOption[];
-  onValueChange: (value: string) => void;
-  placeholder?: string;
-  loading?: boolean;
-};
-
-function SelectField({
-  label,
-  selectedValue,
-  options,
-  onValueChange,
-  placeholder = 'Seleccionar...',
-  loading = false,
-}: SelectFieldProps) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
-
-  return (
-    <>
-      <ThemedText>{label}</ThemedText>
-      <View
-        style={[
-          styles.pickerContainer,
-          {
-            backgroundColor: isDark ? '#1f1f1f' : '#ebebeb',
-            borderColor: isDark ? '#555' : '#999',
-          },
-        ]}
-      >
-        {loading ? (
-          <View style={styles.pickerLoadingContainer}>
-            <ActivityIndicator />
-          </View>
-        ) : (
-          <Picker
-            selectedValue={selectedValue}
-            onValueChange={(value) => onValueChange(String(value))}
-            style={[
-              styles.picker,
-              {
-                color: isDark ? '#fff' : '#111',
-                backgroundColor: 'transparent',
-              },
-            ]}
-            dropdownIconColor={isDark ? '#fff' : '#111'}
-            mode="dropdown"
-          >
-            <Picker.Item
-              label={placeholder}
-              value=""
-              color={isDark ? '#fff' : '#111'}
-            />
-            {options.map((option) => (
-              <Picker.Item
-                key={option.value}
-                label={option.label}
-                value={option.value}
-                color={isDark ? '#fff' : '#111'}
-              />
-            ))}
-          </Picker>
-        )}
-      </View>
-    </>
-  );
-}
 
 /* ================= MAIN ================= */
 
 export default function TabTwoScreen() {
   const { selectedCompany } = useCompany();
   const { user } = useAuth();
+  const { addAndSubmit } = useSubmissions();
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [apiResponse, setApiResponse] = useState<any>(null);
+  const [submitted, setSubmitted] = useState<'sent' | 'queued' | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
 
   const [loadingLotes, setLoadingLotes] = useState(false);
@@ -289,28 +232,23 @@ export default function TabTwoScreen() {
   /* ================= LOAD SELECTORS ================= */
 
   const loadLotes = async () => {
+    const cacheKey = `lotes_${user?.domainId}`;
+    const cached = await getCached<SelectOption[]>(cacheKey);
+    if (cached) { setLoteOptions(cached); return; }
     setLoadingLotes(true);
     try {
       const token = await getToken();
-
-      const response = await fetch(
-        `https://api.finneg.com/api/Lote/list?ACCESS_TOKEN=${token}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`Lote request failed: ${response.status}`);
-      }
-
+      const response = await fetch(`https://api.finneg.com/api/Lote/list?ACCESS_TOKEN=${token}`);
+      if (!response.ok) throw new Error(`Lote request failed: ${response.status}`);
       const data = await response.json();
-
       const options: SelectOption[] = (Array.isArray(data) ? data : [])
         .map((item: any) => ({
           label: item.nombre ?? item.Nombre ?? item.codigo ?? item.Codigo ?? '',
           value: item.codigo ?? item.Codigo ?? '',
         }))
         .filter((item: SelectOption) => item.label && item.value);
-
       setLoteOptions(options);
+      await setCached(cacheKey, options);
     } catch (err: any) {
       setError(err.message || 'Error cargando LoteDestino');
     } finally {
@@ -319,39 +257,23 @@ export default function TabTwoScreen() {
   };
 
   const loadCategorias = async () => {
+    const cacheKey = `categorias_${user?.domainId}`;
+    const cached = await getCached<SelectOption[]>(cacheKey);
+    if (cached) { setCategoriaOptions(cached); return; }
     setLoadingCategorias(true);
     try {
       const token = await getToken();
-
-      const response = await fetch(
-        `https://api.finneg.com/api/haciendaCategoria/list?ACCESS_TOKEN=${token}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`Categoria request failed: ${response.status}`);
-      }
-
+      const response = await fetch(`https://api.finneg.com/api/haciendaCategoria/list?ACCESS_TOKEN=${token}`);
+      if (!response.ok) throw new Error(`Categoria request failed: ${response.status}`);
       const data = await response.json();
-
       const options: SelectOption[] = (Array.isArray(data) ? data : [])
         .map((item: any) => ({
-          label:
-            item.nombre ??
-            item.Nombre ??
-            item.descripcion ??
-            item.Descripcion ??
-            item.codigo ??
-            item.Codigo ??
-            '',
-          value:
-            item.codigo ??
-            item.Codigo ??
-            item.value ??
-            '',
+          label: item.nombre ?? item.Nombre ?? item.descripcion ?? item.Descripcion ?? item.codigo ?? item.Codigo ?? '',
+          value: item.codigo ?? item.Codigo ?? item.value ?? '',
         }))
         .filter((item: SelectOption) => item.label && item.value);
-
       setCategoriaOptions(options);
+      await setCached(cacheKey, options);
     } catch (err: any) {
       setError(err.message || 'Error cargando categorías');
     } finally {
@@ -372,7 +294,16 @@ export default function TabTwoScreen() {
     value: string
   ) => {
     setItems((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        const updated = { ...item, [field]: value };
+        if (field === 'KgCab' || field === 'Cab') {
+          const kgcab = parseFloat(updated.KgCab) || 0;
+          const cab = parseFloat(updated.Cab) || 0;
+          updated.Kg = kgcab > 0 && cab > 0 ? (kgcab * cab).toString() : '';
+        }
+        return updated;
+      })
     );
   };
 
@@ -406,6 +337,7 @@ export default function TabTwoScreen() {
         Madre: item.Madre || null,
         CantidadMadres: toNumberOrNull(item.CantidadMadres),
         CantidadKgsCabezaMadre: toNumberOrNull(item.CantidadKgsCabezaMadre),
+        CCMadre: item.CCMadre || null,
         'Hijo/s': item.Hijos || null,
         Cab: toNumberOrNull(item.Cab),
         'Kg/cab': toNumberOrNull(item.KgCab),
@@ -413,6 +345,7 @@ export default function TabTwoScreen() {
         Tropa: item.Tropa || null,
         CantidadMuertes: toNumberOrNull(item.CantidadMuertes),
         EventoHaciendaClasificacionID: item.EventoHaciendaClasificacionID || null,
+        ClasifMuerte: item.ClasifMuerte || null,
         OrganizacionID: item.OrganizacionID || null,
         IDTernero: [],
         IDMadre: item.IDMadre || null,
@@ -430,67 +363,22 @@ export default function TabTwoScreen() {
       setError({ title: 'Seleccioná una empresa en Home antes de enviar.' });
       return;
     }
-
     setLoading(true);
     setError(null);
-    setApiResponse(null);
+    setSubmitted(null);
 
-    try {
-      let tokenData: string;
-      try {
-        tokenData = await getToken();
-      } catch {
-        setError(TOKEN_ERROR);
-        return;
-      }
+    const result = await addAndSubmit({
+      formType: 'NACIMIENTOS',
+      payload: buildPayload(),
+      companyLabel: selectedCompany.label,
+      lote: items[0]?.LoteDestino || null,
+      categoria: items[0]?.CodigoCategoriahacienda || null,
+      cantidad: parseInt(items[0]?.Cab) || null,
+    });
 
-      const payload = buildPayload();
-      console.log('Payload:', JSON.stringify(payload, null, 2));
-
-      const apiCall = await fetch(
-        `https://api.finneg.com/api/NacimientosHacienda?ACCESS_TOKEN=${tokenData}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      const responseText = await apiCall.text();
-      let parsedResponse: any;
-      try {
-        parsedResponse = JSON.parse(responseText);
-      } catch {
-        parsedResponse = responseText;
-      }
-
-      if (!apiCall.ok) {
-        const friendlyError = getFriendlyError(apiCall.status, parsedResponse);
-        setError(friendlyError);
-        if (user?.token) sendLog(user.token, {
-          form_type: 'NACIMIENTOS',
-          lote: items[0]?.LoteDestino || null,
-          categoria: items[0]?.CodigoCategoriahacienda || null,
-          cantidad: parseInt(items[0]?.Cab) || null,
-          status: 'ERROR',
-          error_detail: friendlyError.title,
-        });
-        return;
-      }
-
-      setApiResponse(parsedResponse);
-      if (user?.token) sendLog(user.token, {
-        form_type: 'NACIMIENTOS',
-        lote: items[0]?.LoteDestino || null,
-        categoria: items[0]?.CodigoCategoriahacienda || null,
-        cantidad: parseInt(items[0]?.Cab) || null,
-        status: 'SUCCESS',
-      });
-    } catch {
-      setError(NETWORK_ERROR);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
+    if (result.status === 'error') setError({ title: result.detail });
+    else setSubmitted(result.status);
   };
 
 const handleSendPress = () => {
@@ -552,7 +440,7 @@ const handleSendPress = () => {
               Item {index + 1}
             </ThemedText>
 
-            <SelectField
+            <SearchableSelect
               label="LoteDestino"
               selectedValue={item.LoteDestino}
               options={loteOptions}
@@ -563,7 +451,7 @@ const handleSendPress = () => {
               loading={loadingLotes}
             />
 
-            <SelectField
+            <SearchableSelect
               label="CodigoCategoríahacienda"
               selectedValue={item.CodigoCategoriahacienda}
               options={categoriaOptions}
@@ -574,7 +462,7 @@ const handleSendPress = () => {
               loading={loadingCategorias}
             />
 
-            <SelectField
+            <SearchableSelect
               label="Madre"
               selectedValue={item.Madre}
               options={categoriaOptions}
@@ -603,7 +491,16 @@ const handleSendPress = () => {
               keyboardType="numeric"
             />
 
-            <SelectField
+            <SearchableSelect
+              label="CC Madre"
+              selectedValue={item.CCMadre}
+              options={categoriaOptions}
+              onValueChange={(value) => updateItemField(index, 'CCMadre', value)}
+              placeholder="Seleccionar CC Madre..."
+              loading={loadingCategorias}
+            />
+
+            <SearchableSelect
               label="Hijo/s"
               selectedValue={item.Hijos}
               options={categoriaOptions}
@@ -633,12 +530,11 @@ const handleSendPress = () => {
             />
 
             <InputField
-              label="Kg"
+              label="Kg (automático)"
               value={item.Kg}
-              onChangeText={(text) =>
-                updateItemField(index, 'Kg', text)
-              }
+              onChangeText={() => {}}
               keyboardType="numeric"
+              editable={false}
             />
 
             <InputField
@@ -658,10 +554,10 @@ const handleSendPress = () => {
               keyboardType="numeric"
             />
 
-            <SelectField
-              label="EventoHaciendaClasificacionID"
+            <SearchableSelect
+              label="Clasificación"
               selectedValue={item.EventoHaciendaClasificacionID}
-              options={CLASIFICACION_OPTIONS}
+              options={BIRTH_CLASIFICACION_OPTIONS}
               onValueChange={(value) =>
                 updateItemField(index, 'EventoHaciendaClasificacionID', value)
               }
@@ -669,7 +565,16 @@ const handleSendPress = () => {
               loading={false}
             />
 
-            <SelectField
+            <SearchableSelect
+              label="Clasif. Muerte"
+              selectedValue={item.ClasifMuerte}
+              options={MUERTE_CLASIFICACION_OPTIONS}
+              onValueChange={(value) => updateItemField(index, 'ClasifMuerte', value)}
+              placeholder="Seleccionar clasif. muerte..."
+              loading={false}
+            />
+
+            <SearchableSelect
               label="IDMadre"
               selectedValue={item.IDMadre}
               options={categoriaOptions}
@@ -707,6 +612,16 @@ const handleSendPress = () => {
             {error.detail && (
               <ThemedText style={styles.errorDetail}>{error.detail}</ThemedText>
             )}
+          </View>
+        )}
+        {submitted === 'sent' && (
+          <View style={styles.successBox}>
+            <ThemedText style={styles.successText}>Enviado correctamente.</ThemedText>
+          </View>
+        )}
+        {submitted === 'queued' && (
+          <View style={styles.queueBox}>
+            <ThemedText style={styles.queueText}>Sin conexión. Guardado para enviar cuando se restaure la red.</ThemedText>
           </View>
         )}
         <SendConfirmationModal
@@ -778,40 +693,31 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
 
-  pickerContainer: {
-    borderWidth: 0,
-    borderRadius: 10,
-    minHeight: 56,
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-
-  pickerLoadingContainer: {
-    minHeight: 56,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  picker: {
-    width: '100%',
-    minHeight: 56,
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    ...Platform.select({
-      android: {
-        height: 56,
-      },
-      ios: {
-        height: 180,
-      },
-    }),
-  },
-
-  pickerItem: {
-    fontSize: 14,
-  },
   loader: {
     marginTop: 8,
+  },
+  successBox: {
+    backgroundColor: 'rgba(16,185,129,0.08)',
+    borderColor: 'rgba(16,185,129,0.3)',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+  },
+  successText: {
+    color: '#059669',
+    fontSize: 14,
+    fontWeight: '600' as const,
+  },
+  queueBox: {
+    backgroundColor: 'rgba(234,179,8,0.08)',
+    borderColor: 'rgba(234,179,8,0.35)',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+  },
+  queueText: {
+    color: '#b45309',
+    fontSize: 14,
   },
   errorBox: {
     backgroundColor: 'rgba(220, 38, 38, 0.08)',
@@ -830,17 +736,5 @@ const styles = StyleSheet.create({
     color: '#b91c1c',
     fontSize: 13,
     opacity: 0.85,
-  },
-  responseBox: {
-    marginTop: 8,
-    gap: 8,
-  },
-  responseText: {
-    fontSize: 12,
-    fontFamily: Platform.select({
-      ios: 'Courier',
-      android: 'monospace',
-      web: 'monospace',
-    }),
   },
 });
