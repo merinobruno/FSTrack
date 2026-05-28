@@ -1,7 +1,7 @@
 // Web stub — Metro uses local-db.native.ts on iOS/Android.
 // expo-sqlite requires native APIs and cannot run in a browser.
 
-export type FormType = 'PRODUCCION' | 'NACIMIENTOS' | 'MUERTES' | 'TRASLADOS' | 'PEDIDO_COMPRA' | 'PEDIDO_VENTA';
+export type FormType = 'PRODUCCION' | 'NACIMIENTOS' | 'MUERTES' | 'TRASLADOS' | 'PEDIDO_COMPRA' | 'PEDIDO_VENTA' | 'NOVEDADES_SUELDO';
 export type SubmissionStatus = 'PENDING' | 'SENT' | 'ERROR';
 
 export type Submission = {

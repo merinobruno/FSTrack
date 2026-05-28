@@ -25,6 +25,9 @@ const FORM_LABELS: Record<string, string> = {
   NACIMIENTOS: 'Nacimientos',
   MUERTES:     'Muertes',
   TRASLADOS:   'Traslados',
+  PEDIDO_COMPRA: 'Pedido Compra',
+  PEDIDO_VENTA: 'Pedido Venta',
+  NOVEDADES_SUELDO: 'Novedades de Sueldo',
 };
 
 type LogEntry = {

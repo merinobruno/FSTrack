@@ -37,6 +37,7 @@ export default function FormulariosLayout() {
         <Stack.Screen name="nacimientos" options={{ title: 'Nacimientos' }} />
         <Stack.Screen name="muertes" options={{ title: 'Muertes' }} />
         <Stack.Screen name="traslados" options={{ title: 'Traslados' }} />
+        <Stack.Screen name="novedades" options={{ title: 'Novedades' }} />
       </Stack>
       <EnviosDrawer visible={enviosOpen} onClose={() => setEnviosOpen(false)} />
     </>

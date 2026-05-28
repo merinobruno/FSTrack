@@ -44,6 +44,13 @@ const FORMS: FormEntry[] = [
     icon: <MaterialCommunityIcons name="swap-horizontal" size={26} color="#f59e0b" />,
     color: 'rgba(245,158,11,0.10)',
   },
+  {
+    key: 'novedades',
+    title: 'Novedades de Sueldo',
+    description: 'Registrar novedades para liquidacion de sueldos',
+    icon: <MaterialCommunityIcons name="account-cash-outline" size={26} color="#0ea5e9" />,
+    color: 'rgba(14,165,233,0.10)',
+  },
 ];
 
 export default function FormulariosIndex() {

@@ -1,7 +1,8 @@
 import { API_BASE_URL } from '@/constants/api';
+import { FormType } from '@/utils/local-db';
 
 export type LogPayload = {
-  form_type: 'PRODUCCION' | 'NACIMIENTOS' | 'MUERTES' | 'TRASLADOS';
+  form_type: FormType;
   lote?: string | null;
   categoria?: string | null;
   cantidad?: number | null;

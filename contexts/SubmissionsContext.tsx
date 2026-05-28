@@ -23,6 +23,7 @@ const ENDPOINTS: Record<FormType, string> = {
   TRASLADOS:     'https://api.finneg.com/api/TrasladosHacienda',
   PEDIDO_COMPRA: 'https://api.finneg.com/api/pedidoCompra',
   PEDIDO_VENTA:  'https://api.finneg.com/api/pedidoVenta',
+  NOVEDADES_SUELDO: 'https://api.finneg.com/api/novedadLiquidacionSueldo',
 };
 
 export type AddParams = {
