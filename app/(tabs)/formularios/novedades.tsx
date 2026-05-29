@@ -303,7 +303,7 @@ export default function NovedadesScreen() {
       setLoadingTipos
     );
     loadOptions(
-      `empleados_v2_${domainId}`,
+      `empleados_v3_codigo_${domainId}`,
       'https://api.finneg.com/api/Empleado/list',
       setPersonaOptions,
       setLoadingPersonas
