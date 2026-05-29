@@ -68,7 +68,23 @@ const USER_SECTIONS: GuideSection[] = [
       '• Pedido de Venta — genera un pedido de venta asociado a un cliente.',
       'Cada tipo de pedido requiere un workflow de Finnegans asignado a tu cuenta.',
       '! Si ves un candado con el texto "Sin workflow asignado", el administrador todavía no habilitó ese tipo de pedido para tu usuario. Contactalo para que lo configure.',
-      'Al agregar ítems, podés incluir varios productos en un mismo pedido antes de enviarlo.',
+      'Al agregar ítems, podés incluir varios productos en un mismo pedido antes de enviarlo. Al confirmarse el envío, volvés automáticamente al listado de pedidos.',
+    ],
+  },
+  {
+    icon: 'account-cash-outline',
+    title: 'Novedades de Sueldo',
+    lines: [
+      'El formulario de Novedades de Sueldo tiene dos campos de búsqueda con comportamiento específico:',
+      'TipoNovedadCodigo:',
+      '• Si tu espacio de trabajo tiene tipos configurados en Finnegans, aparece un selector con las opciones disponibles.',
+      '• Si no hay opciones o hay un error de conexión, aparece un campo de texto libre con un botón "Reintentar".',
+      '• En ese caso, ingresá el código del tipo de novedad directamente (consultá con el administrador cuáles aplican).',
+      'PersonaCodigo:',
+      '• El buscador muestra los empleados en el formato "APELLIDO, NOMBRE · código".',
+      '• La búsqueda filtra por inicio de palabra — escribí el inicio del apellido o del nombre para reducir los resultados.',
+      '• Si no reconocés el nombre, el código al final identifica unívocamente al empleado en Finnegans.',
+      '! Podés agregar múltiples ítems por formulario usando el botón "Agregar item". Cada ítem puede tener un empleado y tipo distinto.',
     ],
   },
   {
@@ -115,8 +131,21 @@ const ADMIN_SECTIONS: GuideSection[] = [
     lines: [
       'El panel web te permite gestionar toda la configuración de FSTrack sin tocar el servidor directamente.',
       '! URL del panel: https://fisterra.com.ar/admin',
-      'Ingresá con las credenciales de administrador (configuradas en el servidor). La sesión dura 8 horas.',
-      'Desde el panel podés: crear dominios, crear cuentas, asignar empresas, asignar workflows y ver los logs de actividad.',
+      'Ingresá con tu usuario y contraseña de administrador. La sesión dura 8 horas.',
+      'Desde el panel podés: crear dominios, crear cuentas de app, asignar empresas, asignar workflows, gestionar administradores del panel y ver los logs de actividad.',
+    ],
+  },
+  {
+    icon: 'shield-account-outline',
+    title: 'Administradores del panel',
+    lines: [
+      'Los administradores del panel son los usuarios que pueden iniciar sesión en /admin. Son independientes de las cuentas de la app.',
+      'Desde la sección "Administradores del panel" podés:',
+      '• Ver la lista de administradores actuales con su fecha de creación.',
+      '• Crear un nuevo administrador ingresando usuario y contraseña.',
+      '• Eliminar un administrador existente.',
+      '! No es posible eliminar al último administrador — siempre debe quedar al menos uno para poder acceder al panel.',
+      'Los campos de contraseña tienen un botón "Ver" para mostrar u ocultar lo que estás escribiendo.',
     ],
   },
   {
@@ -171,6 +200,7 @@ const ADMIN_SECTIONS: GuideSection[] = [
       '• Elegí el workflow de Compra y/o el de Venta desde los desplegables (se cargan desde Finnegans).',
       '• Guardá. Los cambios se reflejan en la app la próxima vez que el usuario abre la pestaña Pedidos.',
       '! Podés asignar solo Compra, solo Venta, ambos o ninguno de forma independiente. Si un usuario no necesita pedidos, no asignés ningún workflow.',
+      '! Si el panel muestra error al cargar workflows, es posible que la API de workflows no esté habilitada para ese espacio de trabajo en Finnegans. Consultá con el equipo de Finnegans.',
     ],
   },
   {
