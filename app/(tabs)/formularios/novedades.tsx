@@ -120,6 +120,7 @@ export default function NovedadesScreen() {
   const [loadingTipos, setLoadingTipos] = useState(false);
   const [loadingPersonas, setLoadingPersonas] = useState(false);
   const [tipoOptions, setTipoOptions] = useState<SelectOption[]>([]);
+  const [tipoLoadError, setTipoLoadError] = useState<string | null>(null);
   const [personaOptions, setPersonaOptions] = useState<SelectOption[]>([]);
 
   const [nombre] = useState('');
@@ -138,126 +139,72 @@ export default function NovedadesScreen() {
     return getFinnegansToken(user.token);
   };
 
-  const normalizeKey = (key: string) => key.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-
   const findFirstArray = (value: any): any[] => {
     if (Array.isArray(value)) return value;
     if (!value || typeof value !== 'object') return [];
-
     for (const nested of Object.values(value)) {
       const rows = findFirstArray(nested);
       if (rows.length > 0) return rows;
     }
-
     return [];
   };
 
-  const getFirstValue = (item: any, keys: string[]) => {
-    for (const key of keys) {
-      const value = item?.[key];
-      if (value !== null && value !== undefined && String(value).trim() !== '') {
-        return String(value);
-      }
+  const str = (v: any) => (v !== null && v !== undefined ? String(v).trim() : '');
+
+  // Finds the deepest object that has BOTH nombre and apellido populated —
+  // avoids picking up nombre from a company/cargo sub-object.
+  const findPersonObject = (obj: any, seen = new Set<any>()): { nombre: string; apellido: string } | null => {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj) || seen.has(obj)) return null;
+    seen.add(obj);
+    const n = str(obj.nombre ?? obj.Nombre ?? obj.NOMBRE);
+    const a = str(obj.apellido ?? obj.Apellido ?? obj.APELLIDO);
+    if (n && a) return { nombre: n, apellido: a };
+    for (const v of Object.values(obj)) {
+      const found = findPersonObject(v, seen);
+      if (found) return found;
     }
-    return '';
-  };
-
-  const getFirstDeepValue = (item: any, keys: string[]): string => {
-    const targetKeys = new Set(keys.map(normalizeKey));
-    const seen = new Set<any>();
-
-    const visit = (value: any): string => {
-      if (!value || typeof value !== 'object' || seen.has(value)) return '';
-      seen.add(value);
-
-      for (const [key, nested] of Object.entries(value)) {
-        if (
-          targetKeys.has(normalizeKey(key)) &&
-          nested !== null &&
-          nested !== undefined &&
-          String(nested).trim() !== ''
-        ) {
-          return String(nested);
-        }
-      }
-
-      for (const nested of Object.values(value)) {
-        const found = visit(nested);
-        if (found) return found;
-      }
-
-      return '';
-    };
-
-    return visit(item);
+    return null;
   };
 
   const mapOptions = (data: any): SelectOption[] => {
     const rows = Array.isArray(data)
       ? data
-      : data?.data ??
-        data?.Data ??
-        data?.DATA ??
-        data?.rows ??
-        data?.Rows ??
-        data?.ROWS ??
-        data?.result ??
-        data?.Result ??
-        data?.RESULT ??
-        data?.items ??
-        data?.Items ??
+      : data?.data ?? data?.Data ?? data?.DATA ??
+        data?.rows ?? data?.Rows ?? data?.ROWS ??
+        data?.result ?? data?.Result ?? data?.RESULT ??
+        data?.items ?? data?.Items ??
         findFirstArray(data);
 
     return (Array.isArray(rows) ? rows : [])
       .map((item: any) => {
-        const value = getFirstValue(item, [
-          'codigo',
-          'Codigo',
-          'CODIGO',
-          'personaCodigo',
-          'PersonaCodigo',
-          'PERSONACODIGO',
-          'empleadoCodigo',
-          'EmpleadoCodigo',
-          'EMPLEADOCODIGO',
-          'legajoCodigo',
-          'LegajoCodigo',
-          'LEGAJOCODIGO',
-          'cuit',
-          'Cuit',
-          'CUIT',
-          'email',
-          'Email',
-          'EMAIL',
-          'mail',
-          'Mail',
-          'MAIL',
-          'identificacion',
-          'Identificacion',
-          'IDENTIFICACION',
+        // Extract the employee code from common field names
+        const codeFields = [
+          'codigo', 'Codigo', 'CODIGO',
+          'personaCodigo', 'PersonaCodigo',
+          'empleadoCodigo', 'EmpleadoCodigo',
+          'legajoCodigo', 'LegajoCodigo',
+          'cuit', 'Cuit', 'CUIT',
+          'email', 'Email', 'EMAIL',
           'value',
-        ]) || getFirstDeepValue(item, [
-          'personaCodigo',
-          'PersonaCodigo',
-          'codigoPersona',
-          'CodigoPersona',
-          'empleadoCodigo',
-          'EmpleadoCodigo',
-          'legajoCodigo',
-          'LegajoCodigo',
-          'codigo',
-          'Codigo',
-          'cuit',
-          'CUIT',
-          'email',
-          'Email',
-        ]);
+        ];
+        let value = '';
+        for (const k of codeFields) {
+          const v = str(item?.[k]);
+          if (v) { value = v; break; }
+        }
 
-        const nombre = getFirstValue(item, ['nombre', 'Nombre', 'NOMBRE']) || getFirstDeepValue(item, ['nombre', 'Nombre']);
-        const apellido = getFirstValue(item, ['apellido', 'Apellido', 'APELLIDO']) || getFirstDeepValue(item, ['apellido', 'Apellido']);
-        const descripcion = getFirstValue(item, ['descripcion', 'Descripcion', 'DESCRIPCION']) || getFirstDeepValue(item, ['descripcion', 'Descripcion']);
-        const razonSocial = getFirstValue(item, ['razonSocial', 'RazonSocial', 'RAZONSOCIAL']) || getFirstDeepValue(item, ['razonSocial', 'RazonSocial']);
-        const label = [apellido, nombre].filter(Boolean).join(', ') || nombre || descripcion || razonSocial || value;
+        // Find the person name from the object that has BOTH nombre+apellido together
+        const person = findPersonObject(item);
+        let nameStr = '';
+        if (person) {
+          nameStr = [person.apellido, person.nombre].filter(Boolean).join(', ');
+        } else {
+          // Fallback: use descripcion or razonSocial
+          nameStr = str(item?.descripcion ?? item?.Descripcion ?? item?.razonSocial ?? item?.RazonSocial ?? '');
+        }
+
+        // Always show code alongside name so the user can identify the record
+        const label = nameStr ? `${nameStr}  ·  ${value}` : value;
 
         return { label, value };
       })
@@ -268,40 +215,55 @@ export default function NovedadesScreen() {
     cacheKey: string,
     endpoint: string,
     setOptions: (options: SelectOption[]) => void,
-    setLoadingState: (loading: boolean) => void
+    setLoadingState: (loading: boolean) => void,
+    onError?: (msg: string) => void
   ) => {
     const cached = await getCached<SelectOption[]>(cacheKey);
     if (cached && cached.length > 0) {
       setOptions(cached);
+      onError?.('' );
       return;
     }
 
     setLoadingState(true);
+    onError?.('');
     try {
       const token = await getToken();
       const response = await fetch(`${endpoint}?ACCESS_TOKEN=${token}`);
-      if (!response.ok) return;
+      if (!response.ok) {
+        onError?.(`Error ${response.status}: ${response.statusText}`);
+        return;
+      }
       const options = mapOptions(await response.json());
       setOptions(options);
       if (options.length > 0) {
         await setCached(cacheKey, options);
+      } else {
+        onError?.('La API no devolvió opciones para este dominio.');
       }
-    } catch {
-      // Lists are optional here; manual code inputs remain available.
+    } catch (e: any) {
+      onError?.(e?.message ?? 'No se pudo conectar con Finnegans.');
     } finally {
       setLoadingState(false);
     }
   };
 
-  useEffect(() => {
+  const loadTipos = () => {
     if (!user?.token) return;
     const domainId = user?.domainId ?? 'default';
     loadOptions(
       `tipos_novedad_sueldo_${domainId}`,
       'https://api.finneg.com/api/TIPONOVEDADLIQUIDACIONSUELDOS/list',
       setTipoOptions,
-      setLoadingTipos
+      setLoadingTipos,
+      setTipoLoadError
     );
+  };
+
+  useEffect(() => {
+    if (!user?.token) return;
+    const domainId = user?.domainId ?? 'default';
+    loadTipos();
     loadOptions(
       `empleados_v3_codigo_${domainId}`,
       'https://api.finneg.com/api/Empleado/list',
@@ -437,12 +399,26 @@ export default function NovedadesScreen() {
                 loading={loadingTipos}
               />
             ) : (
-              <InputField
-                label="TipoNovedadCodigo"
-                value={item.TipoNovedadCodigo}
-                onChangeText={(text) => updateItemField(index, 'TipoNovedadCodigo', text)}
-                placeholder="Ej: FINN_LCT_7030"
-              />
+              <>
+                <InputField
+                  label="TipoNovedadCodigo"
+                  value={item.TipoNovedadCodigo}
+                  onChangeText={(text) => updateItemField(index, 'TipoNovedadCodigo', text)}
+                  placeholder="Código manual (ej: VACACIONES)"
+                />
+                {loadingTipos ? null : (
+                  <View style={styles.tipoRetryRow}>
+                    {tipoLoadError ? (
+                      <ThemedText style={styles.tipoErrorText}>{tipoLoadError}</ThemedText>
+                    ) : (
+                      <ThemedText style={styles.helpText}>
+                        No se encontraron tipos para este dominio.
+                      </ThemedText>
+                    )}
+                    <Button title="Reintentar" onPress={loadTipos} />
+                  </View>
+                )}
+              </>
             )}
 
             <SearchableSelect
@@ -608,5 +584,16 @@ const styles = StyleSheet.create({
     color: '#b91c1c',
     fontSize: 13,
     opacity: 0.85,
+  },
+  tipoRetryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  tipoErrorText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#b45309',
   },
 });

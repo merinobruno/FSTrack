@@ -46,7 +46,13 @@ export function SearchableSelect({
 
   const selected = options.find((o) => o.value === selectedValue);
   const filtered = query.trim()
-    ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()))
+    ? (() => {
+        const q = query.trim().toLowerCase();
+        return options.filter((o) => {
+          const tokens = `${o.label} ${o.value}`.toLowerCase().split(/[\s,·()\-\/]+/);
+          return tokens.some((t) => t.startsWith(q));
+        });
+      })()
     : options;
 
   const close = () => { setOpen(false); setQuery(''); };
