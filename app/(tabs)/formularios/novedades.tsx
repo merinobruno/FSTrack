@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { SearchableSelect, SelectOption } from '@/components/searchable-select';
 import SendConfirmationModal from '@/components/SendConfirmationModal';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
@@ -114,7 +115,6 @@ export default function NovedadesScreen() {
 
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState<'sent' | 'queued' | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
 
   const [loadingTipos, setLoadingTipos] = useState(false);
@@ -362,7 +362,6 @@ export default function NovedadesScreen() {
 
     setLoading(true);
     setError(null);
-    setSubmitted(null);
 
     const firstItem = items[0];
     const result = await addAndSubmit({
@@ -376,7 +375,7 @@ export default function NovedadesScreen() {
 
     setLoading(false);
     if (result.status === 'error') setError({ title: result.detail });
-    else setSubmitted(result.status);
+    else router.back();
   };
 
   const handleSendPress = () => {
@@ -492,17 +491,6 @@ export default function NovedadesScreen() {
             {error.detail && <ThemedText style={styles.errorDetail}>{error.detail}</ThemedText>}
           </View>
         )}
-        {submitted === 'sent' && (
-          <View style={styles.successBox}>
-            <ThemedText style={styles.successText}>Enviado correctamente.</ThemedText>
-          </View>
-        )}
-        {submitted === 'queued' && (
-          <View style={styles.queueBox}>
-            <ThemedText style={styles.queueText}>Sin conexion. Guardado para enviar cuando se restaure la red.</ThemedText>
-          </View>
-        )}
-
         <SendConfirmationModal
           visible={confirmVisible}
           title="Estas seguro?"

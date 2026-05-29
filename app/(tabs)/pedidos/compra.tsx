@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState } from 'react';
 import {
@@ -125,7 +126,6 @@ export default function PedidoCompraScreen() {
   const { workflow } = useWorkflow();
 
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState<'sent' | 'queued' | null>(null);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
 
@@ -208,7 +208,6 @@ export default function PedidoCompraScreen() {
   const submitCompra = async () => {
     setLoading(true);
     setError(null);
-    setSubmitted(null);
     const result = await addAndSubmit({
       formType: 'PEDIDO_COMPRA',
       payload: buildPayload(),
@@ -216,7 +215,7 @@ export default function PedidoCompraScreen() {
     });
     setLoading(false);
     if (result.status === 'error') setError({ title: result.detail });
-    else setSubmitted(result.status);
+    else router.back();
   };
 
   return (
@@ -291,17 +290,6 @@ export default function PedidoCompraScreen() {
             {error.detail && <ThemedText style={styles.errorDetail}>{error.detail}</ThemedText>}
           </View>
         )}
-        {submitted === 'sent' && (
-          <View style={styles.successBox}>
-            <ThemedText style={styles.successText}>Enviado correctamente.</ThemedText>
-          </View>
-        )}
-        {submitted === 'queued' && (
-          <View style={styles.queueBox}>
-            <ThemedText style={styles.queueText}>Sin conexión. Guardado para enviar cuando se restaure la red.</ThemedText>
-          </View>
-        )}
-
         <SendConfirmationModal
           visible={confirmVisible}
           title="¿Estás seguro?"

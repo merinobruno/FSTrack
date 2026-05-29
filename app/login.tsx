@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     Pressable,
     StyleSheet,
+    TextInput as RNTextInput,
     TextInput,
     View,
 } from 'react-native';
@@ -24,8 +25,14 @@ export default function LoginScreen() {
   const [cuenta, setCuenta] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const cuentaInputRef = useRef<RNTextInput>(null);
+  const passwordInputRef = useRef<RNTextInput>(null);
 
   const handleLogin = async () => {
+    if (loading) {
+      return;
+    }
+
     setLoading(true);
 
     const result = await signIn({
@@ -83,10 +90,14 @@ export default function LoginScreen() {
           onChangeText={setWorkspace}
           placeholder="Ej: Fisterra"
           placeholderTextColor={colorScheme === 'dark' ? '#8e8e93' : '#777'}
+          returnKeyType="next"
+          autoCapitalize="none"
+          onSubmitEditing={() => cuentaInputRef.current?.focus()}
         />
 
         <ThemedText>Cuenta</ThemedText>
         <TextInput
+          ref={cuentaInputRef}
           style={[
             styles.input,
             {
@@ -99,6 +110,9 @@ export default function LoginScreen() {
           onChangeText={setCuenta}
           placeholder="Ej: admin"
           placeholderTextColor={colorScheme === 'dark' ? '#8e8e93' : '#777'}
+          returnKeyType="next"
+          autoCapitalize="none"
+          onSubmitEditing={() => passwordInputRef.current?.focus()}
         />
 
         <ThemedText>Contraseña</ThemedText>
@@ -111,11 +125,14 @@ export default function LoginScreen() {
               color: theme.text,
             },
           ]}
+          ref={passwordInputRef}
           value={password}
           onChangeText={setPassword}
           placeholder="********"
           placeholderTextColor={colorScheme === 'dark' ? '#8e8e93' : '#777'}
           secureTextEntry
+          returnKeyType="done"
+          onSubmitEditing={handleLogin}
         />
 
         <Pressable
@@ -146,19 +163,6 @@ export default function LoginScreen() {
           )}
         </Pressable>
 
-        <ThemedText
-          style={[
-            styles.helpText,
-            {
-              color: colorScheme === 'dark' ? '#a1a1aa' : '#666',
-            },
-          ]}
-        >
-          Demo actual:
-          {'\n'}Workspace: Fisterra
-          {'\n'}Cuenta: admin
-          {'\n'}Contraseña: 1234
-        </ThemedText>
       </View>
     </ThemedView>
   );
@@ -202,9 +206,5 @@ const styles = StyleSheet.create({
   },
   loginButtonText: {
     fontWeight: '600',
-  },
-  helpText: {
-    marginTop: 10,
-    fontSize: 12,
   },
 });

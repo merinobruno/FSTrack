@@ -74,6 +74,15 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="ayuda"
+          options={{
+            title: 'Ayuda',
+            tabBarIcon: ({ color }) => <MaterialCommunityIcons name="help-circle-outline" size={24} color={color} />,
+            headerShown: true,
+            headerRight: () => <HeaderRight />,
+          }}
+        />
+        <Tabs.Screen
           name="Envios"
           options={{ href: null }}
         />

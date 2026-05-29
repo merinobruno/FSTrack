@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState } from 'react';
 import {
@@ -144,7 +145,6 @@ export default function TrasladosScreen() {
   const { addAndSubmit } = useSubmissions();
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState<'sent' | 'queued' | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
 
   const [loteOptions, setLoteOptions] = useState<SelectOption[]>([]);
@@ -273,7 +273,6 @@ export default function TrasladosScreen() {
     }
     setLoading(true);
     setError(null);
-    setSubmitted(null);
 
     const result = await addAndSubmit({
       formType: 'TRASLADOS',
@@ -286,7 +285,7 @@ export default function TrasladosScreen() {
 
     setLoading(false);
     if (result.status === 'error') setError({ title: result.detail });
-    else setSubmitted(result.status);
+    else router.back();
   };
 
   const handleSendPress = () => {
@@ -447,18 +446,6 @@ export default function TrasladosScreen() {
             {error.detail && (
               <ThemedText style={styles.errorDetail}>{error.detail}</ThemedText>
             )}
-          </View>
-        )}
-        {submitted === 'sent' && (
-          <View style={styles.successBox}>
-            <ThemedText style={styles.successText}>Enviado correctamente.</ThemedText>
-          </View>
-        )}
-        {submitted === 'queued' && (
-          <View style={styles.queueBox}>
-            <ThemedText style={styles.queueText}>
-              Sin conexión. Guardado para enviar cuando se restaure la red.
-            </ThemedText>
           </View>
         )}
 
