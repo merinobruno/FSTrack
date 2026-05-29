@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
@@ -328,6 +329,8 @@ function AccordionSection({
 export default function AyudaScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const isDark = colorScheme === 'dark';
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [tab, setTab] = useState<'usuario' | 'admin'>('usuario');
 
   const sections = tab === 'usuario' ? USER_SECTIONS : ADMIN_SECTIONS;
@@ -346,48 +349,50 @@ export default function AyudaScreen() {
           : 'Gestión de dominios, cuentas y configuraciones.'}
       </ThemedText>
 
-      <View
-        style={[
-          s.segmented,
-          { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6' },
-        ]}
-      >
-        {(['usuario', 'admin'] as const).map((key) => {
-          const active = tab === key;
-          const ac = key === 'usuario' ? USER_ACCENT : ADMIN_ACCENT;
-          return (
-            <Pressable
-              key={key}
-              onPress={() => setTab(key)}
-              style={[
-                s.segment,
-                active && {
-                  backgroundColor: isDark ? '#374151' : '#fff',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.08,
-                  shadowRadius: 3,
-                  elevation: 2,
-                },
-              ]}
-            >
-              <MaterialCommunityIcons
-                name={key === 'usuario' ? 'account-outline' : 'shield-account-outline'}
-                size={16}
-                color={active ? ac : isDark ? '#9ca3af' : '#6b7280'}
-              />
-              <ThemedText
+      {isAdmin && (
+        <View
+          style={[
+            s.segmented,
+            { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6' },
+          ]}
+        >
+          {(['usuario', 'admin'] as const).map((key) => {
+            const active = tab === key;
+            const ac = key === 'usuario' ? USER_ACCENT : ADMIN_ACCENT;
+            return (
+              <Pressable
+                key={key}
+                onPress={() => setTab(key)}
                 style={[
-                  s.segmentText,
-                  active && { color: ac, opacity: 1, fontWeight: '700' as const },
+                  s.segment,
+                  active && {
+                    backgroundColor: isDark ? '#374151' : '#fff',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.08,
+                    shadowRadius: 3,
+                    elevation: 2,
+                  },
                 ]}
               >
-                {key === 'usuario' ? 'Usuario' : 'Admin'}
-              </ThemedText>
-            </Pressable>
-          );
-        })}
-      </View>
+                <MaterialCommunityIcons
+                  name={key === 'usuario' ? 'account-outline' : 'shield-account-outline'}
+                  size={16}
+                  color={active ? ac : isDark ? '#9ca3af' : '#6b7280'}
+                />
+                <ThemedText
+                  style={[
+                    s.segmentText,
+                    active && { color: ac, opacity: 1, fontWeight: '700' as const },
+                  ]}
+                >
+                  {key === 'usuario' ? 'Usuario' : 'Admin'}
+                </ThemedText>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
 
       {sections.map((section) => (
         <AccordionSection
