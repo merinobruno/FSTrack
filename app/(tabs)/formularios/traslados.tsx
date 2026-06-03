@@ -284,7 +284,7 @@ export default function TrasladosScreen() {
     });
 
     setLoading(false);
-    if (result.status === 'error') setError({ title: result.detail });
+    if (result.status === 'error') setError({ title: result.title, detail: result.detail });
     else router.back();
   };
 

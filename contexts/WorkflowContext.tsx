@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import { API_BASE_URL } from '@/constants/api';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -23,7 +24,7 @@ const EMPTY: WorkflowSet = { venta: null, compra: null };
 const WorkflowContext = createContext<WorkflowContextType | undefined>(undefined);
 
 export function WorkflowProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [workflow, setWorkflow] = useState<WorkflowSet>(EMPTY);
   const [loadingWorkflow, setLoadingWorkflow] = useState(false);
 
@@ -37,6 +38,11 @@ export function WorkflowProvider({ children }: { children: React.ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setWorkflow({ venta: data.venta ?? null, compra: data.compra ?? null });
+      } else if (res.status === 401) {
+        // Token expired — sign out so the user can re-authenticate
+        await signOut();
+      } else {
+        console.error('Error loading workflow: HTTP', res.status);
       }
     } catch (err) {
       console.error('Error loading workflow:', err);
@@ -45,7 +51,17 @@ export function WorkflowProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Fetch on login
   useEffect(() => { refreshWorkflow(); }, [user?.token]);
+
+  // Retry when the app comes back to the foreground (covers transient network failures)
+  useEffect(() => {
+    if (!user?.token) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshWorkflow();
+    });
+    return () => sub.remove();
+  }, [user?.token]);
 
   return (
     <WorkflowContext.Provider value={{ workflow, loadingWorkflow, refreshWorkflow }}>

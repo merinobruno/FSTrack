@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { AppState } from 'react-native';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { getFriendlyError } from '@/utils/api-error';
 import { getFinnegansToken } from '@/utils/get-finnegans-token';
 import {
   addSubmission,
@@ -39,7 +40,7 @@ export type AddParams = {
 export type AddResult =
   | { status: 'sent' }
   | { status: 'queued' }
-  | { status: 'error'; detail: string };
+  | { status: 'error'; title: string; detail?: string };
 
 type SubmissionsContextType = {
   submissions: Submission[];
@@ -85,11 +86,8 @@ async function attemptSend(
     const text = await res.text();
     let parsed: any;
     try { parsed = JSON.parse(text); } catch { parsed = text; }
-    const detail =
-      typeof parsed === 'string'
-        ? parsed
-        : (parsed?.error ?? parsed?.message ?? parsed?.mensaje ?? `Error ${res.status}`);
-    const detailStr = String(detail).slice(0, 500);
+    const { title, detail } = getFriendlyError(res.status, parsed);
+    const detailStr = (detail ? `${title}\n${detail}` : title).slice(0, 500);
     await markError(id, detailStr);
     sendLog(userToken, {
       form_type: formType,
@@ -152,10 +150,14 @@ export function SubmissionsProvider({ children }: { children: React.ReactNode })
     if (result === 'sent') return { status: 'sent' };
     if (result === 'pending') return { status: 'queued' };
 
-    // error — pull detail from DB
+    // error — pull detail from DB and split title/detail stored by attemptSend
     const all = await getAll();
     const sub = all.find((s) => s.id === id);
-    return { status: 'error', detail: sub?.error_detail ?? 'Error al enviar.' };
+    const stored = sub?.error_detail ?? 'Error al enviar.';
+    const nl = stored.indexOf('\n');
+    return nl >= 0
+      ? { status: 'error', title: stored.slice(0, nl), detail: stored.slice(nl + 1) }
+      : { status: 'error', title: stored };
   }
 
   async function syncPending() {

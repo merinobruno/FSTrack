@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { Colors } from '@/constants/theme';
@@ -35,10 +35,18 @@ const FORMS: FormEntry[] = [
 export default function PedidosIndex() {
   const colorScheme = useColorScheme() ?? 'light';
   const isDark = colorScheme === 'dark';
-  const { workflow } = useWorkflow();
+  const { workflow, loadingWorkflow } = useWorkflow();
 
   const isEnabled = (key: 'compra' | 'venta') =>
     key === 'compra' ? !!workflow.compra : !!workflow.venta;
+
+  if (loadingWorkflow) {
+    return (
+      <View style={[s.loadingContainer, { backgroundColor: Colors[colorScheme].background }]}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView
@@ -85,6 +93,7 @@ export default function PedidosIndex() {
 }
 
 const s = StyleSheet.create({
+  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   container:  { padding: 16, gap: 10, paddingBottom: 32 },
   hint:       { fontSize: 13, opacity: 0.5, marginBottom: 6 },
   card: {
