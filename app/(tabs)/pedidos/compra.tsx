@@ -183,7 +183,7 @@ export default function PedidoCompraScreen() {
       WorkflowCodigo: workflow.compra?.codigo || null,
       Fecha: fecha || null,
       EmpresaCodigo: selectedCompany?.value || null,
-      TransaccionSubtipoCodigo: 'SolCom-MP',
+      TransaccionSubtipoCodigo: 'PC', // Código fijo para Pedido de Compra, se puede hacer dinámico si es necesario 
       TransaccionTipoCodigo: 'OPER',
       Descripcion: descripcion || null,
       Items: items.map((item) => ({

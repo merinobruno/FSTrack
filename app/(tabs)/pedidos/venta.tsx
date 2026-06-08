@@ -232,7 +232,7 @@ export default function PedidoVentaScreen() {
       WorkflowCodigo: workflow.venta?.codigo || null,
       Fecha: fecha || null,
       EmpresaCodigo: selectedCompany?.value || null,
-      TransaccionSubtipoCodigo: 'PVTA-MP',
+      TransaccionSubtipoCodigo: 'PEDVEN', // Código fijo para Pedido de Venta, se puede hacer dinámico si es necesario
       Cliente: clienteCodigo || null,
       TransaccionTipoCodigo: 'OPER',
       Descripcion: descripcion || null,
