@@ -48,10 +48,10 @@ export function SearchableSelect({
   const selected = options.find((o) => o.value === selectedValue);
   const filtered = query.trim()
     ? (() => {
-        const q = query.trim().toLowerCase();
+        const queryTerms = query.trim().toLowerCase().split(/[\s,·()\-\/]+/).filter(Boolean);
         return options.filter((o) => {
           const tokens = `${o.label} ${o.value}`.toLowerCase().split(/[\s,·()\-\/]+/);
-          return tokens.some((t) => t.startsWith(q));
+          return queryTerms.every((qt) => tokens.some((t) => t.startsWith(qt)));
         });
       })()
     : options.slice(0, INITIAL_LIMIT);
