@@ -53,6 +53,11 @@ type SubmissionsContextType = {
 
 const SubmissionsContext = createContext<SubmissionsContextType | undefined>(undefined);
 
+type AttemptResult =
+  | { result: 'sent' }
+  | { result: 'pending' }
+  | { result: 'error'; detail: string };
+
 async function attemptSend(
   userToken: string,
   id: number,
@@ -60,7 +65,7 @@ async function attemptSend(
   payload: object,
   companyLabel: string | null,
   meta?: Omit<AddParams, 'formType' | 'payload' | 'companyLabel'>
-): Promise<'sent' | 'error' | 'pending'> {
+): Promise<AttemptResult> {
   try {
     const finnegansToken = await getFinnegansToken(userToken);
     const res = await fetch(`${ENDPOINTS[formType]}?ACCESS_TOKEN=${finnegansToken}`, {
@@ -80,14 +85,15 @@ async function attemptSend(
         company_label: companyLabel,
         status: 'SUCCESS',
       });
-      return 'sent';
+      return { result: 'sent' };
     }
 
     const text = await res.text();
-    let parsed: any;
-    try { parsed = JSON.parse(text); } catch { parsed = text; }
-    const { title, detail } = getFriendlyError(res.status, parsed);
-    const detailStr = (detail ? `${title}\n${detail}` : title).slice(0, 500);
+    let parsed: any = null;
+    try { parsed = JSON.parse(text); } catch { /* not JSON */ }
+    const { title } = getFriendlyError(res.status, parsed ?? text);
+    const rawBody = parsed !== null ? JSON.stringify(parsed) : text.trim();
+    const detailStr = (rawBody ? `${title}\n${rawBody}` : title).slice(0, 1000);
     await markError(id, detailStr);
     sendLog(userToken, {
       form_type: formType,
@@ -99,10 +105,10 @@ async function attemptSend(
       status: 'ERROR',
       error_detail: detailStr,
     });
-    return 'error';
+    return { result: 'error', detail: detailStr };
   } catch {
     // Network unreachable — leave as PENDING for later sync
-    return 'pending';
+    return { result: 'pending' };
   }
 }
 
@@ -144,16 +150,14 @@ export function SubmissionsProvider({ children }: { children: React.ReactNode })
       return { status: 'queued' };
     }
 
-    const result = await attemptSend(user.token, id, params.formType, params.payload, params.companyLabel, params);
+    const outcome = await attemptSend(user.token, id, params.formType, params.payload, params.companyLabel, params);
     await reload();
 
-    if (result === 'sent') return { status: 'sent' };
-    if (result === 'pending') return { status: 'queued' };
+    if (outcome.result === 'sent') return { status: 'sent' };
+    if (outcome.result === 'pending') return { status: 'queued' };
 
-    // error — pull detail from DB and split title/detail stored by attemptSend
-    const all = await getAll();
-    const sub = all.find((s) => s.id === id);
-    const stored = sub?.error_detail ?? 'Error al enviar.';
+    // error — use the detail returned by attemptSend (works on web too, where the DB is a stub)
+    const stored = outcome.detail || 'Error al enviar.';
     const nl = stored.indexOf('\n');
     return nl >= 0
       ? { status: 'error', title: stored.slice(0, nl), detail: stored.slice(nl + 1) }

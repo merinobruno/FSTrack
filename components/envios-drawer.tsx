@@ -73,9 +73,19 @@ function LogItem({ item, isDark }: { item: LogEntry; isDark: boolean }) {
       {item.company_label && <ThemedText style={s.itemMeta}>{item.company_label}</ThemedText>}
       {item.lote        && <ThemedText style={s.itemMeta}>Lote: {item.lote}</ThemedText>}
       <ThemedText style={s.itemDate}>{formatDate(item.created_at)}</ThemedText>
-      {item.status === 'ERROR' && item.error_detail && (
-        <ThemedText style={s.itemError}>{item.error_detail}</ThemedText>
-      )}
+      {item.status === 'ERROR' && item.error_detail && (() => {
+        const nl = item.error_detail.indexOf('\n');
+        const title  = nl >= 0 ? item.error_detail.slice(0, nl) : item.error_detail;
+        const detail = nl >= 0 ? item.error_detail.slice(nl + 1) : null;
+        return (
+          <>
+            <ThemedText style={s.itemError}>{title}</ThemedText>
+            {detail && (
+              <ThemedText style={s.itemErrorDetail}>{detail}</ThemedText>
+            )}
+          </>
+        );
+      })()}
     </View>
   );
 }
@@ -280,7 +290,8 @@ const s = StyleSheet.create({
   itemType:   { fontSize: 14, fontWeight: '600' as const },
   itemMeta:   { fontSize: 12, opacity: 0.7, marginTop: 2 },
   itemDate:   { fontSize: 11, opacity: 0.45, marginTop: 2 },
-  itemError:  { fontSize: 11, color: '#b91c1c', marginTop: 4 },
+  itemError:       { fontSize: 12, color: '#b91c1c', marginTop: 4, fontWeight: '600' as const },
+  itemErrorDetail: { fontSize: 11, color: '#b91c1c', marginTop: 2, opacity: 0.85, fontFamily: 'monospace' },
 
   badge:     { borderWidth: 1, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
   badgeText: { fontSize: 10, fontWeight: '600' as const },
