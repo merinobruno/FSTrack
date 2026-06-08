@@ -44,6 +44,7 @@ export function SearchableSelect({
   const dividerColor = isDark ? '#2c2c2e' : '#f0f0f0';
   const searchBg = isDark ? '#2c2c2e' : '#f2f2f7';
 
+  const INITIAL_LIMIT = 20;
   const selected = options.find((o) => o.value === selectedValue);
   const filtered = query.trim()
     ? (() => {
@@ -53,7 +54,7 @@ export function SearchableSelect({
           return tokens.some((t) => t.startsWith(q));
         });
       })()
-    : options;
+    : options.slice(0, INITIAL_LIMIT);
 
   const close = () => { setOpen(false); setQuery(''); };
 
@@ -133,6 +134,14 @@ export function SearchableSelect({
                   </Pressable>
                 );
               })}
+
+              {!query.trim() && options.length > INITIAL_LIMIT && (
+                <View style={s.empty}>
+                  <Text style={{ color: subtleColor, fontSize: 13 }}>
+                    Mostrando {INITIAL_LIMIT} de {options.length} — buscá para filtrar
+                  </Text>
+                </View>
+              )}
 
               {filtered.length === 0 && (
                 <View style={s.empty}>
