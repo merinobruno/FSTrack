@@ -183,7 +183,7 @@ export default function PedidoCompraScreen() {
       WorkflowCodigo: workflow.compra?.codigo || null,
       Fecha: fecha || null,
       EmpresaCodigo: selectedCompany?.value || null,
-      TransaccionSubtipoCodigo: 'PC', // Código fijo para Pedido de Compra, se puede hacer dinámico si es necesario 
+      TransaccionSubtipoCodigo: workflow.compra?.subtipoCodigo || null, // TipoDocumento asignado al workflow (admin)
       TransaccionTipoCodigo: 'OPER',
       Descripcion: descripcion || null,
       Items: items.map((item) => ({
@@ -200,6 +200,10 @@ export default function PedidoCompraScreen() {
     }
     if (!workflow.compra) {
       setError({ title: 'Esta cuenta no tiene un workflow de compra asignado. Contactá al administrador.' });
+      return;
+    }
+    if (!workflow.compra.subtipoCodigo) {
+      setError({ title: 'Esta cuenta no tiene un tipo de documento asignado al workflow de compra. Contactá al administrador.' });
       return;
     }
     setConfirmVisible(true);

@@ -232,7 +232,7 @@ export default function PedidoVentaScreen() {
       WorkflowCodigo: workflow.venta?.codigo || null,
       Fecha: fecha || null,
       EmpresaCodigo: selectedCompany?.value || null,
-      TransaccionSubtipoCodigo: 'PEDVEN', // Código fijo para Pedido de Venta, se puede hacer dinámico si es necesario
+      TransaccionSubtipoCodigo: workflow.venta?.subtipoCodigo || null, // TipoDocumento asignado al workflow (admin)
       Cliente: clienteCodigo || null,
       TransaccionTipoCodigo: 'OPER',
       Descripcion: descripcion || null,
@@ -259,6 +259,10 @@ export default function PedidoVentaScreen() {
     }
     if (!workflow.venta) {
       setError({ title: 'Esta cuenta no tiene un workflow de venta asignado. Contactá al administrador.' });
+      return;
+    }
+    if (!workflow.venta.subtipoCodigo) {
+      setError({ title: 'Esta cuenta no tiene un tipo de documento asignado al workflow de venta. Contactá al administrador.' });
       return;
     }
     setConfirmVisible(true);

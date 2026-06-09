@@ -6,6 +6,9 @@ import { useAuth } from '@/contexts/AuthContext';
 type WorkflowEntry = {
   codigo: string;
   nombre: string;
+  // TipoDocumento assigned to this workflow — sent as TransaccionSubtipoCodigo on the Pedido payload.
+  subtipoCodigo?: string | null;
+  subtipoNombre?: string;
 };
 
 type WorkflowSet = {
