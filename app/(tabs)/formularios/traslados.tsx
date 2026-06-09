@@ -189,8 +189,10 @@ export default function TrasladosScreen() {
 
   const [loteOptions, setLoteOptions] = useState<SelectOption[]>([]);
   const [categoriaOptions, setCategoriaOptions] = useState<SelectOption[]>([]);
+  const [eventoOptions, setEventoOptions] = useState<SelectOption[]>(EVENTO_HACIENDA_OPTIONS);
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [loadingCategorias, setLoadingCategorias] = useState(false);
+  const [loadingEventos, setLoadingEventos] = useState(false);
 
   const [fecha, setFecha] = useState(getTodayDate());
   const [descripcion, setDescripcion] = useState('');
@@ -255,9 +257,40 @@ export default function TrasladosScreen() {
     }
   };
 
+  const loadEventos = async () => {
+    const cacheKey = `eventos_hac_cod_${user?.domainId}`;
+    const cached = await getCached<SelectOption[]>(cacheKey);
+    if (cached?.length) { setEventoOptions(cached); return; }
+    setLoadingEventos(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`https://api.finneg.com/api/EventoHacienda/list?ACCESS_TOKEN=${token}`);
+      if (!res.ok) throw new Error(`EventoHacienda request failed: ${res.status}`);
+      const data = await res.json();
+      const options: SelectOption[] = (Array.isArray(data) ? data : [])
+        .map((e: any) => ({
+          label: e.Nombre ?? e.nombre ?? '',
+          value: e.codigo ?? e.Codigo ?? '',
+        }))
+        .filter((o: SelectOption) => o.label && o.value)
+        .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
+      // Si la API todavía no expone `codigo`, las opciones quedan vacías y
+      // se mantiene la lista estática (EVENTO_HACIENDA_OPTIONS) como respaldo.
+      if (options.length > 0) {
+        setEventoOptions(options);
+        await setCached(cacheKey, options);
+      }
+    } catch (e: any) {
+      console.error('Error cargando eventos de hacienda:', e);
+    } finally {
+      setLoadingEventos(false);
+    }
+  };
+
   useEffect(() => {
     loadLotes();
     loadCategorias();
+    loadEventos();
   }, []);
 
   /* ================= ITEMS ================= */
@@ -380,9 +413,10 @@ export default function TrasladosScreen() {
               <SearchableSelect
                 label="EventoHaciendaID"
                 selectedValue={item.EventoHaciendaID}
-                options={EVENTO_HACIENDA_OPTIONS}
+                options={eventoOptions}
                 onValueChange={(v) => updateItem(i, 'EventoHaciendaID', v)}
                 placeholder="Seleccionar evento..."
+                loading={loadingEventos}
               />
 
               <ThemedText style={styles.sectionLabel}>Origen</ThemedText>
