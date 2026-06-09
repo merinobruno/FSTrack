@@ -17,6 +17,7 @@ import { Fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useSubmissions } from '@/contexts/SubmissionsContext';
+import { useWorkflow } from '@/contexts/WorkflowContext';
 import { ApiError } from '@/utils/api-error';
 import { getFinnegansToken } from '@/utils/get-finnegans-token';
 import { getCached, setCached } from '@/utils/options-cache';
@@ -168,6 +169,7 @@ export default function TabTwoScreen() {
   const { selectedCompany } = useCompany();
   const { user } = useAuth();
   const { addAndSubmit } = useSubmissions();
+  const { workflow } = useWorkflow();
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
@@ -283,7 +285,7 @@ export default function TabTwoScreen() {
       IdentificacionExterna: identificacionExterna || null,
       Fecha: fecha,
       TransaccionTipo: 'OPER',
-      TransaccionSubtipoCodigo: 'HAC-MUE',
+      TransaccionSubtipoCodigo: workflow.hacienda?.muertes?.codigo || 'HAC-MUE',
       Descripcion: descripcion,
       NumeroComprobante: numeroComprobante || null,
       EmpresaCodigo: selectedCompany?.value || null,

@@ -11,9 +11,23 @@ type WorkflowEntry = {
   subtipoNombre?: string;
 };
 
+type HaciendaEntry = {
+  codigo: string;
+  nombre: string;
+};
+
+// TransaccionSubtipoCodigo asignado por el admin a cada formulario de hacienda.
+type HaciendaSet = {
+  produccion: HaciendaEntry | null;
+  nacimientos: HaciendaEntry | null;
+  muertes: HaciendaEntry | null;
+  traslados: HaciendaEntry | null;
+};
+
 type WorkflowSet = {
   venta: WorkflowEntry | null;
   compra: WorkflowEntry | null;
+  hacienda: HaciendaSet;
 };
 
 type WorkflowContextType = {
@@ -22,7 +36,8 @@ type WorkflowContextType = {
   refreshWorkflow: () => Promise<void>;
 };
 
-const EMPTY: WorkflowSet = { venta: null, compra: null };
+const EMPTY_HACIENDA: HaciendaSet = { produccion: null, nacimientos: null, muertes: null, traslados: null };
+const EMPTY: WorkflowSet = { venta: null, compra: null, hacienda: EMPTY_HACIENDA };
 
 const WorkflowContext = createContext<WorkflowContextType | undefined>(undefined);
 
@@ -40,7 +55,11 @@ export function WorkflowProvider({ children }: { children: React.ReactNode }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setWorkflow({ venta: data.venta ?? null, compra: data.compra ?? null });
+        setWorkflow({
+          venta: data.venta ?? null,
+          compra: data.compra ?? null,
+          hacienda: data.hacienda ?? EMPTY_HACIENDA,
+        });
       } else if (res.status === 401) {
         // Token expired — sign out so the user can re-authenticate
         await signOut();

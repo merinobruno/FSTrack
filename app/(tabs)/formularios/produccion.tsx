@@ -17,6 +17,7 @@ import { Fonts } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useSubmissions } from '@/contexts/SubmissionsContext';
+import { useWorkflow } from '@/contexts/WorkflowContext';
 import { ApiError } from '@/utils/api-error';
 import { getFinnegansToken } from '@/utils/get-finnegans-token';
 import { getCached, setCached } from '@/utils/options-cache';
@@ -159,6 +160,7 @@ export default function TabTwoScreen() {
   const isDark = colorScheme === 'dark';
   const { user } = useAuth();
   const { addAndSubmit } = useSubmissions();
+  const { workflow } = useWorkflow();
   const [loading, setLoading] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [loadingLotes, setLoadingLotes] = useState(false);
@@ -299,7 +301,7 @@ export default function TabTwoScreen() {
   const buildPayload = () => {
     const rawPayload = {
       IdentificacionExterna: identificacionExterna || null,
-      TransaccionSubtipoCodigo: transaccionSubtipoCodigo || null,
+      TransaccionSubtipoCodigo: workflow.hacienda?.produccion?.codigo || transaccionSubtipoCodigo || null,
       Fecha: fecha || null,
       NumeroDocumento: numeroDocumento || null,
       CampanaCodigo: campanaCodigo || null,
