@@ -85,6 +85,7 @@ const CLASIFICACION_OPTIONS: SelectOption[] = [
 /* ================= TYPES ================= */
 
 type Item = {
+  EventoHaciendaID: string;
   LoteOrigen: string;
   CategoriaOrigen: string;
   EstablecimientoDestino: string;
@@ -97,6 +98,7 @@ type Item = {
 };
 
 const createEmptyItem = (): Item => ({
+  EventoHaciendaID: '',
   LoteOrigen: '',
   CategoriaOrigen: '',
   EstablecimientoDestino: '',
@@ -151,8 +153,10 @@ export default function TrasladosScreen() {
 
   const [loteOptions, setLoteOptions] = useState<SelectOption[]>([]);
   const [categoriaOptions, setCategoriaOptions] = useState<SelectOption[]>([]);
+  const [eventoOptions, setEventoOptions] = useState<SelectOption[]>([]);
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [loadingCategorias, setLoadingCategorias] = useState(false);
+  const [loadingEventos, setLoadingEventos] = useState(false);
 
   const [fecha, setFecha] = useState(getTodayDate());
   const [descripcion, setDescripcion] = useState('');
@@ -217,9 +221,35 @@ export default function TrasladosScreen() {
     }
   };
 
+  const loadEventos = async () => {
+    const cacheKey = `eventos_hacienda_${user?.domainId}`;
+    const cached = await getCached<SelectOption[]>(cacheKey);
+    if (cached) { setEventoOptions(cached); return; }
+    setLoadingEventos(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`https://api.finneg.com/api/EventoHacienda/list?ACCESS_TOKEN=${token}`);
+      if (!res.ok) throw new Error(`EventoHacienda request failed: ${res.status}`);
+      const data = await res.json();
+      const options: SelectOption[] = (Array.isArray(data) ? data : [])
+        .map((e: any) => ({
+          label: e.Nombre ?? e.nombre ?? '',
+          value: String(e.EventoHaciendaID ?? e.eventoHaciendaID ?? ''),
+        }))
+        .filter((o: SelectOption) => o.label && o.value);
+      setEventoOptions(options);
+      await setCached(cacheKey, options);
+    } catch (e: any) {
+      setError({ title: e.message || 'Error cargando eventos de hacienda' });
+    } finally {
+      setLoadingEventos(false);
+    }
+  };
+
   useEffect(() => {
     loadLotes();
     loadCategorias();
+    loadEventos();
   }, []);
 
   /* ================= ITEMS ================= */
@@ -251,6 +281,7 @@ export default function TrasladosScreen() {
         const kgCab = toNumberOrNull(item.KgCab) ?? 0;
         const cab = toNumberOrNull(item.Cab) ?? 0;
         return {
+          EventoHaciendaID: toNumberOrNull(item.EventoHaciendaID),
           LoteOrigen: item.LoteOrigen || null,
           CategoriaOrigen: item.CategoriaOrigen || null,
           EstablecimientoDestino: item.EstablecimientoDestino || null,
@@ -337,6 +368,15 @@ export default function TrasladosScreen() {
           return (
             <ThemedView key={i} style={styles.miniForm}>
               <ThemedText style={styles.itemTitle}>Item {i + 1}</ThemedText>
+
+              <SearchableSelect
+                label="EventoHaciendaID"
+                selectedValue={item.EventoHaciendaID}
+                options={eventoOptions}
+                onValueChange={(v) => updateItem(i, 'EventoHaciendaID', v)}
+                placeholder="Seleccionar evento..."
+                loading={loadingEventos}
+              />
 
               <ThemedText style={styles.sectionLabel}>Origen</ThemedText>
 
