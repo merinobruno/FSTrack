@@ -82,6 +82,42 @@ const CLASIFICACION_OPTIONS: SelectOption[] = [
   { label: 'TIMPANISMO', value: 'TIMPANISMO-80' },
 ];
 
+// Eventos de Hacienda. El endpoint EventoHacienda/list NO expone la columna `Codigo`
+// (solo EventoHaciendaID + Nombre), pero TrasladosHacienda valida el campo
+// EventoHaciendaID contra `Codigo`, así que las opciones se definen acá:
+// label = Nombre, value = Codigo.
+const EVENTO_HACIENDA_OPTIONS: SelectOption[] = [
+  { label: 'AJUSTE', value: 'AJUSTE' },
+  { label: 'Chequeo', value: 'CHEQUEO' },
+  { label: 'COMPRA', value: 'COMPRA' },
+  { label: 'CONSUMO', value: 'CONS' },
+  { label: 'DEPs', value: 'DEP' },
+  { label: 'DESPACHO', value: 'DESP' },
+  { label: 'EVENTO GENERAL - DESTETE', value: 'Evento General - Destete' },
+  { label: 'EVENTO GENERAL - DETECCIÓN DE PREÑEZ', value: 'Evento General - Detección de Preñez' },
+  { label: 'EVENTO GENERAL - DETECCIÓN DE PREÑEZ - VACIO', value: 'Evento General - Detección de Preñez - Vacio' },
+  { label: 'EVENTO GENERAL - EXPOSICIÓN', value: 'Evento General - Exposicion' },
+  { label: 'EVENTO GENERAL - SELECCIÓN DE REPRODUCTORES', value: 'Evento General - Selección de Reproductores' },
+  { label: 'EVENTO GENERAL - SERVICIO', value: 'EVENTO GENERAL - SERVICIO' },
+  { label: 'Fenotipo', value: 'FENOTIPO' },
+  { label: 'Inseminacion', value: 'INS' },
+  { label: 'Interrupción de Gestación', value: 'INTERRUPCION' },
+  { label: 'MUERTE', value: 'MUE' },
+  { label: 'NACIMIENTO', value: 'NAC' },
+  { label: 'PARTO', value: 'PARTO' },
+  { label: 'PESAJE', value: 'PESAJE' },
+  { label: 'PRODUCCIÓN DE LANA', value: 'PRODLANA' },
+  { label: 'PRODUCCIÓN DE LECHE', value: 'PRODLECHE' },
+  { label: 'RECEPCIÓN', value: 'RECEP' },
+  { label: 'RECUENTO', value: 'RECUENTO' },
+  { label: 'SANIDAD', value: 'SANIDAD' },
+  { label: 'SECADO', value: 'SECADO' },
+  { label: 'SUPLEMENTACIÓN', value: 'SUPLEMENTACION' },
+  { label: 'Transferencia', value: 'TRANSFERENCIA' },
+  { label: 'TRASLADO/CAMBIO CATEGORÍA', value: 'CAMBCAT' },
+  { label: 'VENTA', value: 'VENTA' },
+];
+
 /* ================= TYPES ================= */
 
 type Item = {
@@ -153,10 +189,8 @@ export default function TrasladosScreen() {
 
   const [loteOptions, setLoteOptions] = useState<SelectOption[]>([]);
   const [categoriaOptions, setCategoriaOptions] = useState<SelectOption[]>([]);
-  const [eventoOptions, setEventoOptions] = useState<SelectOption[]>([]);
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [loadingCategorias, setLoadingCategorias] = useState(false);
-  const [loadingEventos, setLoadingEventos] = useState(false);
 
   const [fecha, setFecha] = useState(getTodayDate());
   const [descripcion, setDescripcion] = useState('');
@@ -221,35 +255,9 @@ export default function TrasladosScreen() {
     }
   };
 
-  const loadEventos = async () => {
-    const cacheKey = `eventos_hacienda_${user?.domainId}`;
-    const cached = await getCached<SelectOption[]>(cacheKey);
-    if (cached) { setEventoOptions(cached); return; }
-    setLoadingEventos(true);
-    try {
-      const token = await getToken();
-      const res = await fetch(`https://api.finneg.com/api/EventoHacienda/list?ACCESS_TOKEN=${token}`);
-      if (!res.ok) throw new Error(`EventoHacienda request failed: ${res.status}`);
-      const data = await res.json();
-      const options: SelectOption[] = (Array.isArray(data) ? data : [])
-        .map((e: any) => ({
-          label: e.Nombre ?? e.nombre ?? '',
-          value: String(e.EventoHaciendaID ?? e.eventoHaciendaID ?? ''),
-        }))
-        .filter((o: SelectOption) => o.label && o.value);
-      setEventoOptions(options);
-      await setCached(cacheKey, options);
-    } catch (e: any) {
-      setError({ title: e.message || 'Error cargando eventos de hacienda' });
-    } finally {
-      setLoadingEventos(false);
-    }
-  };
-
   useEffect(() => {
     loadLotes();
     loadCategorias();
-    loadEventos();
   }, []);
 
   /* ================= ITEMS ================= */
@@ -281,7 +289,7 @@ export default function TrasladosScreen() {
         const kgCab = toNumberOrNull(item.KgCab) ?? 0;
         const cab = toNumberOrNull(item.Cab) ?? 0;
         return {
-          EventoHaciendaID: toNumberOrNull(item.EventoHaciendaID),
+          EventoHaciendaID: item.EventoHaciendaID || null,
           LoteOrigen: item.LoteOrigen || null,
           CategoriaOrigen: item.CategoriaOrigen || null,
           EstablecimientoDestino: item.EstablecimientoDestino || null,
@@ -372,10 +380,9 @@ export default function TrasladosScreen() {
               <SearchableSelect
                 label="EventoHaciendaID"
                 selectedValue={item.EventoHaciendaID}
-                options={eventoOptions}
+                options={EVENTO_HACIENDA_OPTIONS}
                 onValueChange={(v) => updateItem(i, 'EventoHaciendaID', v)}
                 placeholder="Seleccionar evento..."
-                loading={loadingEventos}
               />
 
               <ThemedText style={styles.sectionLabel}>Origen</ThemedText>
