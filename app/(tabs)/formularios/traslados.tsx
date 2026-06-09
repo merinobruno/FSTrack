@@ -82,42 +82,6 @@ const CLASIFICACION_OPTIONS: SelectOption[] = [
   { label: 'TIMPANISMO', value: 'TIMPANISMO-80' },
 ];
 
-// Eventos de Hacienda. El endpoint EventoHacienda/list NO expone la columna `Codigo`
-// (solo EventoHaciendaID + Nombre), pero TrasladosHacienda valida el campo
-// EventoHaciendaID contra `Codigo`, así que las opciones se definen acá:
-// label = Nombre, value = Codigo.
-const EVENTO_HACIENDA_OPTIONS: SelectOption[] = [
-  { label: 'AJUSTE', value: 'AJUSTE' },
-  { label: 'Chequeo', value: 'CHEQUEO' },
-  { label: 'COMPRA', value: 'COMPRA' },
-  { label: 'CONSUMO', value: 'CONS' },
-  { label: 'DEPs', value: 'DEP' },
-  { label: 'DESPACHO', value: 'DESP' },
-  { label: 'EVENTO GENERAL - DESTETE', value: 'Evento General - Destete' },
-  { label: 'EVENTO GENERAL - DETECCIÓN DE PREÑEZ', value: 'Evento General - Detección de Preñez' },
-  { label: 'EVENTO GENERAL - DETECCIÓN DE PREÑEZ - VACIO', value: 'Evento General - Detección de Preñez - Vacio' },
-  { label: 'EVENTO GENERAL - EXPOSICIÓN', value: 'Evento General - Exposicion' },
-  { label: 'EVENTO GENERAL - SELECCIÓN DE REPRODUCTORES', value: 'Evento General - Selección de Reproductores' },
-  { label: 'EVENTO GENERAL - SERVICIO', value: 'EVENTO GENERAL - SERVICIO' },
-  { label: 'Fenotipo', value: 'FENOTIPO' },
-  { label: 'Inseminacion', value: 'INS' },
-  { label: 'Interrupción de Gestación', value: 'INTERRUPCION' },
-  { label: 'MUERTE', value: 'MUE' },
-  { label: 'NACIMIENTO', value: 'NAC' },
-  { label: 'PARTO', value: 'PARTO' },
-  { label: 'PESAJE', value: 'PESAJE' },
-  { label: 'PRODUCCIÓN DE LANA', value: 'PRODLANA' },
-  { label: 'PRODUCCIÓN DE LECHE', value: 'PRODLECHE' },
-  { label: 'RECEPCIÓN', value: 'RECEP' },
-  { label: 'RECUENTO', value: 'RECUENTO' },
-  { label: 'SANIDAD', value: 'SANIDAD' },
-  { label: 'SECADO', value: 'SECADO' },
-  { label: 'SUPLEMENTACIÓN', value: 'SUPLEMENTACION' },
-  { label: 'Transferencia', value: 'TRANSFERENCIA' },
-  { label: 'TRASLADO/CAMBIO CATEGORÍA', value: 'CAMBCAT' },
-  { label: 'VENTA', value: 'VENTA' },
-];
-
 /* ================= TYPES ================= */
 
 type Item = {
@@ -189,7 +153,7 @@ export default function TrasladosScreen() {
 
   const [loteOptions, setLoteOptions] = useState<SelectOption[]>([]);
   const [categoriaOptions, setCategoriaOptions] = useState<SelectOption[]>([]);
-  const [eventoOptions, setEventoOptions] = useState<SelectOption[]>(EVENTO_HACIENDA_OPTIONS);
+  const [eventoOptions, setEventoOptions] = useState<SelectOption[]>([]);
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [loadingCategorias, setLoadingCategorias] = useState(false);
   const [loadingEventos, setLoadingEventos] = useState(false);
@@ -270,18 +234,14 @@ export default function TrasladosScreen() {
       const options: SelectOption[] = (Array.isArray(data) ? data : [])
         .map((e: any) => ({
           label: e.Nombre ?? e.nombre ?? '',
-          value: e.codigo ?? e.Codigo ?? '',
+          value: e.Codigo ?? e.codigo ?? '',
         }))
         .filter((o: SelectOption) => o.label && o.value)
         .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
-      // Si la API todavía no expone `codigo`, las opciones quedan vacías y
-      // se mantiene la lista estática (EVENTO_HACIENDA_OPTIONS) como respaldo.
-      if (options.length > 0) {
-        setEventoOptions(options);
-        await setCached(cacheKey, options);
-      }
+      setEventoOptions(options);
+      await setCached(cacheKey, options);
     } catch (e: any) {
-      console.error('Error cargando eventos de hacienda:', e);
+      setError({ title: e.message || 'Error cargando eventos de hacienda' });
     } finally {
       setLoadingEventos(false);
     }
