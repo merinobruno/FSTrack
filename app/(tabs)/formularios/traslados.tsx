@@ -371,7 +371,6 @@ export default function TrasladosScreen() {
 
         <Input label="Fecha" value={fecha} onChangeText={setFecha} />
         <Input label="Descripcion" value={descripcion} onChangeText={setDescripcion} />
-        <Input label="NumeroComprobante" value={numeroComprobante} onChangeText={setNumeroComprobante} />
 
         <ThemedText type="subtitle">Items</ThemedText>
 
@@ -441,30 +440,6 @@ export default function TrasladosScreen() {
                 loading={loadingCategorias}
               />
 
-              <ThemedText style={styles.sectionLabel}>Movimiento</ThemedText>
-
-              <Input
-                label="Kg/Cab"
-                value={item.KgCab}
-                onChangeText={(v: string) => updateItem(i, 'KgCab', v)}
-                numeric
-              />
-
-              <Input
-                label="Cab"
-                value={item.Cab}
-                onChangeText={(v: string) => updateItem(i, 'Cab', v)}
-                numeric
-              />
-
-              <Input
-                label="Kg (automático)"
-                value={kg}
-                onChangeText={() => {}}
-                numeric
-                editable={false}
-              />
-
               <SearchableSelect
                 label="Clasificacion"
                 selectedValue={item.Clasificacion}
@@ -474,8 +449,32 @@ export default function TrasladosScreen() {
                 loading={loadingClasificaciones}
               />
 
+              <ThemedText style={styles.sectionLabel}>Movimiento</ThemedText>
+
               <Input
-                label="Tropa"
+                label="Kg/Cab (opcional)"
+                value={item.KgCab}
+                onChangeText={(v: string) => updateItem(i, 'KgCab', v)}
+                numeric
+              />
+
+              <Input
+                label="Cab (opcional)"
+                value={item.Cab}
+                onChangeText={(v: string) => updateItem(i, 'Cab', v)}
+                numeric
+              />
+
+              <Input
+                label="Kg (automático) (opcional)"
+                value={kg}
+                onChangeText={() => {}}
+                numeric
+                editable={false}
+              />
+
+              <Input
+                label="Tropa (opcional)"
                 value={item.Tropa}
                 onChangeText={(v: string) => updateItem(i, 'Tropa', v)}
               />

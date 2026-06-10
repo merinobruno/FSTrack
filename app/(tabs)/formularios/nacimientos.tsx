@@ -474,87 +474,6 @@ const handleSendPress = () => {
               loading={loadingCategorias}
             />
 
-            <InputField
-              label="CantidadMadres"
-              value={item.CantidadMadres}
-              onChangeText={(text) =>
-                updateItemField(index, 'CantidadMadres', text)
-              }
-              keyboardType="numeric"
-            />
-
-            <InputField
-              label="CantidadKgsCabezaMadre"
-              value={item.CantidadKgsCabezaMadre}
-              onChangeText={(text) =>
-                updateItemField(index, 'CantidadKgsCabezaMadre', text)
-              }
-              keyboardType="numeric"
-            />
-
-            <SearchableSelect
-              label="CC Madre"
-              selectedValue={item.CCMadre}
-              options={categoriaOptions}
-              onValueChange={(value) => updateItemField(index, 'CCMadre', value)}
-              placeholder="Seleccionar CC Madre..."
-              loading={loadingCategorias}
-            />
-
-            <SearchableSelect
-              label="Hijo/s"
-              selectedValue={item.Hijos}
-              options={categoriaOptions}
-              onValueChange={(value) =>
-                updateItemField(index, 'Hijos', value)
-              }
-              placeholder="Seleccionar hijo..."
-              loading={loadingCategorias}
-            />
-
-            <InputField
-              label="Cab"
-              value={item.Cab}
-              onChangeText={(text) =>
-                updateItemField(index, 'Cab', text)
-              }
-              keyboardType="numeric"
-            />
-
-            <InputField
-              label="Kg/cab"
-              value={item.KgCab}
-              onChangeText={(text) =>
-                updateItemField(index, 'KgCab', text)
-              }
-              keyboardType="numeric"
-            />
-
-            <InputField
-              label="Kg (automático)"
-              value={item.Kg}
-              onChangeText={() => {}}
-              keyboardType="numeric"
-              editable={false}
-            />
-
-            <InputField
-              label="Tropa"
-              value={item.Tropa}
-              onChangeText={(text) =>
-                updateItemField(index, 'Tropa', text)
-              }
-            />
-
-            <InputField
-              label="CantidadMuertes"
-              value={item.CantidadMuertes}
-              onChangeText={(text) =>
-                updateItemField(index, 'CantidadMuertes', text)
-              }
-              keyboardType="numeric"
-            />
-
             <SearchableSelect
               label="Clasificación"
               selectedValue={item.EventoHaciendaClasificacionID}
@@ -566,8 +485,81 @@ const handleSendPress = () => {
               loading={false}
             />
 
+            <InputField
+              label="CantidadMadres (opcional)"
+              value={item.CantidadMadres}
+              onChangeText={(text) =>
+                updateItemField(index, 'CantidadMadres', text)
+              }
+              keyboardType="numeric"
+            />
+
+            <InputField
+              label="CantidadKgsCabezaMadre (opcional)"
+              value={item.CantidadKgsCabezaMadre}
+              onChangeText={(text) =>
+                updateItemField(index, 'CantidadKgsCabezaMadre', text)
+              }
+              keyboardType="numeric"
+            />
+
             <SearchableSelect
-              label="Clasif. Muerte"
+              label="CC Madre (opcional)"
+              selectedValue={item.CCMadre}
+              options={categoriaOptions}
+              onValueChange={(value) => updateItemField(index, 'CCMadre', value)}
+              placeholder="Seleccionar CC Madre..."
+              loading={loadingCategorias}
+            />
+
+            <SearchableSelect
+              label="Hijo/s (opcional)"
+              selectedValue={item.Hijos}
+              options={categoriaOptions}
+              onValueChange={(value) =>
+                updateItemField(index, 'Hijos', value)
+              }
+              placeholder="Seleccionar hijo..."
+              loading={loadingCategorias}
+            />
+
+            <InputField
+              label="Cab (opcional)"
+              value={item.Cab}
+              onChangeText={(text) =>
+                updateItemField(index, 'Cab', text)
+              }
+              keyboardType="numeric"
+            />
+
+            <InputField
+              label="Kg/cab (opcional)"
+              value={item.KgCab}
+              onChangeText={(text) =>
+                updateItemField(index, 'KgCab', text)
+              }
+              keyboardType="numeric"
+            />
+
+            <InputField
+              label="Tropa (opcional)"
+              value={item.Tropa}
+              onChangeText={(text) =>
+                updateItemField(index, 'Tropa', text)
+              }
+            />
+
+            <InputField
+              label="CantidadMuertes (opcional)"
+              value={item.CantidadMuertes}
+              onChangeText={(text) =>
+                updateItemField(index, 'CantidadMuertes', text)
+              }
+              keyboardType="numeric"
+            />
+
+            <SearchableSelect
+              label="Clasif. Muerte (opcional)"
               selectedValue={item.ClasifMuerte}
               options={MUERTE_CLASIFICACION_OPTIONS}
               onValueChange={(value) => updateItemField(index, 'ClasifMuerte', value)}
@@ -576,7 +568,7 @@ const handleSendPress = () => {
             />
 
             <SearchableSelect
-              label="IDMadre"
+              label="IDMadre (opcional)"
               selectedValue={item.IDMadre}
               options={categoriaOptions}
               onValueChange={(value) =>

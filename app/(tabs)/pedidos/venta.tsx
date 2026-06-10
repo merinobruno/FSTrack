@@ -341,64 +341,10 @@ export default function PedidoVentaScreen() {
             />
 
             <InputField
-              label="CantidadPresentacion"
-              value={item.CantidadPresentacion}
-              onChangeText={(text) => updateItem(index, 'CantidadPresentacion', text)}
-              keyboardType="numeric"
-            />
-
-            <InputField
-              label="Cantidad2"
-              value={item.Cantidad2}
-              onChangeText={(text) => updateItem(index, 'Cantidad2', text)}
-              keyboardType="numeric"
-            />
-
-            <InputField
               label="Precio"
               value={item.Precio}
               onChangeText={(text) => updateItem(index, 'Precio', text)}
               keyboardType="numeric"
-            />
-
-            <InputField
-              label="PrecioBase"
-              value={item.PrecioBase}
-              onChangeText={(text) => updateItem(index, 'PrecioBase', text)}
-              keyboardType="numeric"
-            />
-
-            <InputField
-              label="PrecioTipo"
-              value={item.PrecioTipo}
-              onChangeText={(text) => updateItem(index, 'PrecioTipo', text)}
-              keyboardType="numeric"
-            />
-
-            <InputField
-              label="Descuento1"
-              value={item.Descuento1}
-              onChangeText={(text) => updateItem(index, 'Descuento1', text)}
-              keyboardType="numeric"
-            />
-
-            <InputField
-              label="Descuento2"
-              value={item.Descuento2}
-              onChangeText={(text) => updateItem(index, 'Descuento2', text)}
-              keyboardType="numeric"
-            />
-
-            <InputField
-              label="FechaProximoPaso"
-              value={item.FechaProximoPaso}
-              onChangeText={(text) => updateItem(index, 'FechaProximoPaso', text)}
-            />
-
-            <InputField
-              label="USRFechaEntrega"
-              value={item.USRFechaEntrega}
-              onChangeText={(text) => updateItem(index, 'USRFechaEntrega', text)}
             />
 
             <InputField

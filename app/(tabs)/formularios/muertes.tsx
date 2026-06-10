@@ -400,22 +400,29 @@ export default function TabTwoScreen() {
               loading={loadingCategoria}
             />
 
+            <SearchableSelect
+              label="EventoHaciendaClasificacionID"
+              selectedValue={item.EventoHaciendaClasificacionID}
+              options={CLASIFICACION_OPTIONS}
+              onValueChange={(v) => updateItem(i, 'EventoHaciendaClasificacionID', v)}
+            />
+
             <Input
-              label="Cab"
+              label="Cab (opcional)"
               value={item.Cab}
               onChangeText={(v: string) => updateItem(i, 'Cab', v)}
               numeric
             />
 
             <Input
-              label="Kg/cab"
+              label="Kg/cab (opcional)"
               value={item.KgCab}
               onChangeText={(v: string) => updateItem(i, 'KgCab', v)}
               numeric
             />
 
             <Input
-              label="KgTotales (automático)"
+              label="KgTotales (automático) (opcional)"
               value={item.KgTotales}
               onChangeText={() => {}}
               numeric
@@ -423,22 +430,15 @@ export default function TabTwoScreen() {
             />
 
             <Input
-              label="Caravanas"
+              label="Caravanas (opcional)"
               value={item.Caravanas}
               onChangeText={(v: string) => updateItem(i, 'Caravanas', v)}
             />
 
             <Input
-              label="Tropa"
+              label="Tropa (opcional)"
               value={item.Tropa}
               onChangeText={(v: string) => updateItem(i, 'Tropa', v)}
-            />
-
-            <SearchableSelect
-              label="EventoHaciendaClasificacionID"
-              selectedValue={item.EventoHaciendaClasificacionID}
-              options={CLASIFICACION_OPTIONS}
-              onValueChange={(v) => updateItem(i, 'EventoHaciendaClasificacionID', v)}
             />
 
             <View style={styles.itemButtons}>

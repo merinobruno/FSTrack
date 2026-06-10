@@ -166,6 +166,7 @@ export default function TabTwoScreen() {
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [loadingHaciendaCategorias, setLoadingHaciendaCategorias] = useState(false);
   const [loadingDepositos, setLoadingDepositos] = useState(false);
+  const [loadingProductosLeche, setLoadingProductosLeche] = useState(false);
   const [apiResponse, setApiResponse] = useState<any>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [showOptionalFields, setShowOptionalFields] = useState(false);
@@ -173,6 +174,7 @@ export default function TabTwoScreen() {
   const [loteOptions, setLoteOptions] = useState<SelectOption[]>([]);
   const [haciendaCategoriaOptions, setHaciendaCategoriaOptions] = useState<SelectOption[]>([]);
   const [depositoOptions, setDepositoOptions] = useState<SelectOption[]>([]);
+  const [productoLecheOptions, setProductoLecheOptions] = useState<SelectOption[]>([]);
 
   // Main fields
   const [identificacionExterna, setIdentificacionExterna] = useState('');
@@ -271,10 +273,37 @@ export default function TabTwoScreen() {
     }
   };
 
+  const loadProductosLeche = async () => {
+    const cacheKey = `productos_leche_${user?.domainId}`;
+    const cached = await getCached<SelectOption[]>(cacheKey);
+    if (cached) { setProductoLecheOptions(cached); return; }
+    setLoadingProductosLeche(true);
+    try {
+      const token = await getToken();
+      const response = await fetch(`https://api.finneg.com/api/reports/LECHEPRODUCCIONAPI?ACCESS_TOKEN=${token}`);
+      if (!response.ok) throw new Error(`LECHEPRODUCCIONAPI request failed: ${response.status}`);
+      const data = await response.json();
+      const options: SelectOption[] = (Array.isArray(data) ? data : [])
+        .map((item: any) => ({
+          label: (item.NOMBRE ?? item.Nombre ?? item.nombre ?? item.CODIGO ?? item.codigo ?? '').trim(),
+          value: String(item.CODIGO ?? item.Codigo ?? item.codigo ?? '').trim(),
+        }))
+        .filter((item: SelectOption) => item.label && item.value)
+        .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
+      setProductoLecheOptions(options);
+      await setCached(cacheKey, options);
+    } catch (err: any) {
+      console.error('Error loading productos leche:', err);
+    } finally {
+      setLoadingProductosLeche(false);
+    }
+  };
+
   useEffect(() => {
     loadLotes();
     loadHaciendaCategorias();
     loadDepositos();
+    loadProductosLeche();
   }, []);
 
   const updateMovimientoField = (
@@ -395,12 +424,6 @@ export default function TabTwoScreen() {
           onChangeText={setFecha}
         />
 
-        <InputField
-          label="Descripcion"
-          value={descripcion}
-          onChangeText={setDescripcion}
-        />
-
         <SearchableSelect
           label="HaciendaCategoriaCodigo"
           selectedValue={haciendaCategoriaCodigo}
@@ -426,6 +449,12 @@ export default function TabTwoScreen() {
           keyboardType="numeric"
         />
 
+        <InputField
+          label="Descripcion (opcional)"
+          value={descripcion}
+          onChangeText={setDescripcion}
+        />
+
         <ThemedText type="subtitle">Movimiento Hacienda Producción Leche</ThemedText>
 
         {movimientos.map((item, index) => (
@@ -434,12 +463,15 @@ export default function TabTwoScreen() {
               Item {index + 1}
             </ThemedText>
 
-            <InputField
+            <SearchableSelect
               label="ProductoCodigo"
-              value={item.ProductoCodigo}
-              onChangeText={(text) =>
-                updateMovimientoField(index, 'ProductoCodigo', text)
+              selectedValue={item.ProductoCodigo}
+              options={productoLecheOptions}
+              onValueChange={(value) =>
+                updateMovimientoField(index, 'ProductoCodigo', value)
               }
+              placeholder="Seleccionar producto..."
+              loading={loadingProductosLeche}
             />
 
             <SearchableSelect
@@ -463,7 +495,7 @@ export default function TabTwoScreen() {
             />
 
             <InputField
-              label="Grasa"
+              label="Grasa (opcional)"
               value={item.Grasa}
               onChangeText={(text) =>
                 updateMovimientoField(index, 'Grasa', text)
@@ -472,7 +504,7 @@ export default function TabTwoScreen() {
             />
 
             <InputField
-              label="UFC"
+              label="UFC (opcional)"
               value={item.UFC}
               onChangeText={(text) =>
                 updateMovimientoField(index, 'UFC', text)
@@ -481,7 +513,7 @@ export default function TabTwoScreen() {
             />
 
             <InputField
-              label="Acidez"
+              label="Acidez (opcional)"
               value={item.Acidez}
               onChangeText={(text) =>
                 updateMovimientoField(index, 'Acidez', text)
@@ -490,7 +522,7 @@ export default function TabTwoScreen() {
             />
 
             <InputField
-              label="Proteinas"
+              label="Proteinas (opcional)"
               value={item.Proteinas}
               onChangeText={(text) =>
                 updateMovimientoField(index, 'Proteinas', text)
@@ -499,7 +531,7 @@ export default function TabTwoScreen() {
             />
 
             <InputField
-              label="Temperatura"
+              label="Temperatura (opcional)"
               value={item.Temperatura}
               onChangeText={(text) =>
                 updateMovimientoField(index, 'Temperatura', text)
@@ -508,7 +540,7 @@ export default function TabTwoScreen() {
             />
 
             <InputField
-              label="CelSomaticas"
+              label="CelSomaticas (opcional)"
               value={item.CelSomaticas}
               onChangeText={(text) =>
                 updateMovimientoField(index, 'CelSomaticas', text)
