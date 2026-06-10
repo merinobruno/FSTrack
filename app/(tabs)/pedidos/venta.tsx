@@ -491,13 +491,13 @@ const styles = StyleSheet.create({
   },
   queueText: { color: '#b45309', fontSize: 14 },
   errorBox: {
-    backgroundColor: 'rgba(220,38,38,0.08)',
-    borderColor: 'rgba(220,38,38,0.3)',
+    backgroundColor: '#dc2626',
+    borderColor: '#991b1b',
     borderWidth: 1,
     borderRadius: 10,
     padding: 12,
     gap: 4,
   },
-  errorTitle: { color: '#b91c1c', fontSize: 14, fontWeight: '600' as const },
-  errorDetail: { color: '#b91c1c', fontSize: 13, opacity: 0.85 },
+  errorTitle: { color: '#ffffff', fontSize: 14, fontWeight: '700' as const },
+  errorDetail: { color: '#fee2e2', fontSize: 13 },
 });

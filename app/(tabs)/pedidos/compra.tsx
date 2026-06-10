@@ -142,21 +142,26 @@ export default function PedidoCompraScreen() {
   };
 
   const loadProductos = async () => {
-    const cacheKey = `productos_${user?.domainId}`;
+    const cacheKey = `productos_compra_${user?.domainId}`;
     const cached = await getCached<SelectOption[]>(cacheKey);
     if (cached) { setProductoOptions(cached); return; }
     setLoadingProductos(true);
     try {
       const token = await getToken();
-      const response = await fetch(`https://api.finneg.com/api/Producto/list?ACCESS_TOKEN=${token}`);
-      if (!response.ok) throw new Error(`Producto request failed: ${response.status}`);
+      const response = await fetch(`https://api.finneg.com/api/reports/PRODUCTOSCOMPRAAPI?ACCESS_TOKEN=${token}`);
+      if (!response.ok) throw new Error(`PRODUCTOSCOMPRAAPI request failed: ${response.status}`);
       const data = await response.json();
       const options: SelectOption[] = (Array.isArray(data) ? data : [])
+        .filter((item: any) => {
+          const a = item.ACTIVO ?? item.activo;
+          return a === true || a === 'true' || a === 1 || a === '1';
+        })
         .map((item: any) => ({
-          label: item.nombre ?? item.Nombre ?? item.descripcion ?? item.Descripcion ?? item.codigo ?? item.Codigo ?? '',
-          value: item.codigo ?? item.Codigo ?? '',
+          label: item.NOMBRE ?? item.nombre ?? item.DESCRIPCION ?? item.descripcion ?? item.CODIGO ?? item.codigo ?? '',
+          value: item.CODIGO ?? item.codigo ?? '',
         }))
-        .filter((item: SelectOption) => item.label && item.value);
+        .filter((item: SelectOption) => item.label && item.value)
+        .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
       setProductoOptions(options);
       await setCached(cacheKey, options);
     } catch (err: any) {
@@ -361,13 +366,13 @@ const styles = StyleSheet.create({
   },
   queueText: { color: '#b45309', fontSize: 14 },
   errorBox: {
-    backgroundColor: 'rgba(220,38,38,0.08)',
-    borderColor: 'rgba(220,38,38,0.3)',
+    backgroundColor: '#dc2626',
+    borderColor: '#991b1b',
     borderWidth: 1,
     borderRadius: 10,
     padding: 12,
     gap: 4,
   },
-  errorTitle: { color: '#b91c1c', fontSize: 14, fontWeight: '600' as const },
-  errorDetail: { color: '#b91c1c', fontSize: 13, opacity: 0.85 },
+  errorTitle: { color: '#ffffff', fontSize: 14, fontWeight: '700' as const },
+  errorDetail: { color: '#fee2e2', fontSize: 13 },
 });

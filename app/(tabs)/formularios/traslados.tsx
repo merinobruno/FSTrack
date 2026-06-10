@@ -67,21 +67,6 @@ const getTodayDate = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-/* ================= STATIC OPTIONS ================= */
-
-const CLASIFICACION_OPTIONS: SelectOption[] = [
-  { label: 'ACCIDENTE', value: 'ACCIDENTE' },
-  { label: 'ACIDOSIS', value: 'ACIDOSIS-82' },
-  { label: 'AL NACER', value: 'AL NACER-3' },
-  { label: 'AL PARIR', value: 'AL PARIR-79' },
-  { label: 'DESCONOCIDA', value: 'DESCONOCIDA-78' },
-  { label: 'DIARREA NEONATAL', value: 'DIARREA NEONATAL-11' },
-  { label: 'EMPASTE', value: 'EMPASTE-81' },
-  { label: 'FOCO INFECCIOSO (USAR DECRIPCIÓN)', value: 'FOCO INFECCIOSO (USAR DECRIPCIÓN)-83' },
-  { label: 'NEMONIA', value: 'NEMONIA-77' },
-  { label: 'TIMPANISMO', value: 'TIMPANISMO-80' },
-];
-
 /* ================= TYPES ================= */
 
 type Item = {
@@ -154,9 +139,11 @@ export default function TrasladosScreen() {
   const [loteOptions, setLoteOptions] = useState<SelectOption[]>([]);
   const [categoriaOptions, setCategoriaOptions] = useState<SelectOption[]>([]);
   const [eventoOptions, setEventoOptions] = useState<SelectOption[]>([]);
+  const [clasificacionOptions, setClasificacionOptions] = useState<SelectOption[]>([]);
   const [loadingLotes, setLoadingLotes] = useState(false);
   const [loadingCategorias, setLoadingCategorias] = useState(false);
   const [loadingEventos, setLoadingEventos] = useState(false);
+  const [loadingClasificaciones, setLoadingClasificaciones] = useState(false);
 
   const [fecha, setFecha] = useState(getTodayDate());
   const [descripcion, setDescripcion] = useState('');
@@ -247,10 +234,37 @@ export default function TrasladosScreen() {
     }
   };
 
+  const loadClasificaciones = async () => {
+    const cacheKey = `clasif_evento_${user?.domainId}`;
+    const cached = await getCached<SelectOption[]>(cacheKey);
+    if (cached?.length) { setClasificacionOptions(cached); return; }
+    setLoadingClasificaciones(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`https://api.finneg.com/api/reports/EventoHaciendaClasificacion?ACCESS_TOKEN=${token}`);
+      if (!res.ok) throw new Error(`EventoHaciendaClasificacion request failed: ${res.status}`);
+      const data = await res.json();
+      const options: SelectOption[] = (Array.isArray(data) ? data : [])
+        .map((c: any) => ({
+          label: c.NOMBRE ?? c.Nombre ?? c.nombre ?? '',
+          value: c.CODIGO ?? c.Codigo ?? c.codigo ?? '',
+        }))
+        .filter((o: SelectOption) => o.label && o.value)
+        .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
+      setClasificacionOptions(options);
+      await setCached(cacheKey, options);
+    } catch (e: any) {
+      setError({ title: e.message || 'Error cargando clasificaciones' });
+    } finally {
+      setLoadingClasificaciones(false);
+    }
+  };
+
   useEffect(() => {
     loadLotes();
     loadCategorias();
     loadEventos();
+    loadClasificaciones();
   }, []);
 
   /* ================= ITEMS ================= */
@@ -284,14 +298,14 @@ export default function TrasladosScreen() {
         return {
           EventoHaciendaID: item.EventoHaciendaID || null,
           LoteOrigen: item.LoteOrigen || null,
-          CategoriaOrigen: item.CategoriaOrigen || null,
-          EstablecimientoDestino: item.EstablecimientoDestino || null,
           LoteDestino: item.LoteDestino || null,
-          CategoriaDestino: item.CategoriaDestino || null,
-          'Kg/Cab': kgCab || null,
+          CodigoCategoriahacienda: item.CategoriaOrigen || null,
+          CodigoCategoriahaciendaDestino: item.CategoriaDestino || null,
+          EstablecimientoDestino: item.EstablecimientoDestino || null,
           Cab: cab || null,
-          Kg: kgCab && cab ? kgCab * cab : null,
-          Clasificacion: item.Clasificacion || null,
+          'Kg/cab': kgCab || null,
+          KgTotales: kgCab && cab ? kgCab * cab : null,
+          EventoHaciendaClasificacionID: item.Clasificacion || null,
           Tropa: item.Tropa || null,
         };
       }),
@@ -454,9 +468,10 @@ export default function TrasladosScreen() {
               <SearchableSelect
                 label="Clasificacion"
                 selectedValue={item.Clasificacion}
-                options={CLASIFICACION_OPTIONS}
+                options={clasificacionOptions}
                 onValueChange={(v) => updateItem(i, 'Clasificacion', v)}
                 placeholder="Seleccionar clasificación..."
+                loading={loadingClasificaciones}
               />
 
               <Input
@@ -564,13 +579,13 @@ const styles = StyleSheet.create({
   },
   queueText: { color: '#b45309', fontSize: 14 },
   errorBox: {
-    backgroundColor: 'rgba(220, 38, 38, 0.08)',
-    borderColor: 'rgba(220, 38, 38, 0.3)',
+    backgroundColor: '#dc2626',
+    borderColor: '#991b1b',
     borderWidth: 1,
     borderRadius: 10,
     padding: 12,
     gap: 4,
   },
-  errorTitle: { color: '#b91c1c', fontSize: 14, fontWeight: '600' as const },
-  errorDetail: { color: '#b91c1c', fontSize: 13, opacity: 0.85 },
+  errorTitle: { color: '#ffffff', fontSize: 14, fontWeight: '700' as const },
+  errorDetail: { color: '#fee2e2', fontSize: 13 },
 });
