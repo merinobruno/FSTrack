@@ -174,8 +174,8 @@ export default function PedidoVentaScreen() {
       const data = await response.json();
       const options: SelectOption[] = (Array.isArray(data) ? data : [])
         .map((item: any) => ({
-          label: (item.NOMBRE ?? item.nombre ?? '').trim(),
-          value: String(item.CODIGO ?? item.codigo ?? '').trim(),
+          label: (item.NOMBRE ?? item.Nombre ?? item.nombre ?? '').trim(),
+          value: String(item.CODIGO ?? item.Codigo ?? item.codigo ?? '').trim(),
         }))
         .filter((item: SelectOption) => item.label && item.value)
         .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));

@@ -151,14 +151,12 @@ export default function PedidoCompraScreen() {
       const response = await fetch(`https://api.finneg.com/api/reports/PRODUCTOSCOMPRAAPI?ACCESS_TOKEN=${token}`);
       if (!response.ok) throw new Error(`PRODUCTOSCOMPRAAPI request failed: ${response.status}`);
       const data = await response.json();
+      // El SP (SP_BS_ProductosCompra) ya filtra Activo=1 y los productos comprables
+      // del lado del servidor, y devuelve solo Nombre/Codigo — no se filtra en cliente.
       const options: SelectOption[] = (Array.isArray(data) ? data : [])
-        .filter((item: any) => {
-          const a = item.ACTIVO ?? item.activo;
-          return a === true || a === 'true' || a === 1 || a === '1';
-        })
         .map((item: any) => ({
-          label: (item.NOMBRE ?? item.nombre ?? item.DESCRIPCION ?? item.descripcion ?? item.CODIGO ?? item.codigo ?? '').trim(),
-          value: String(item.CODIGO ?? item.codigo ?? '').trim(),
+          label: (item.NOMBRE ?? item.Nombre ?? item.nombre ?? item.DESCRIPCION ?? item.descripcion ?? item.CODIGO ?? item.Codigo ?? item.codigo ?? '').trim(),
+          value: String(item.CODIGO ?? item.Codigo ?? item.codigo ?? '').trim(),
         }))
         .filter((item: SelectOption) => item.label && item.value)
         .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
