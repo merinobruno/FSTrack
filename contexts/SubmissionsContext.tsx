@@ -18,7 +18,7 @@ import {
 import { sendLog } from '@/utils/send-log';
 
 const ENDPOINTS: Record<FormType, string> = {
-  PRODUCCION:    'https://api.finneg.com/api/produccionLeche',
+  PRODUCCION:    'https://api.finneg.com/api/produccionLeche2',
   NACIMIENTOS:   'https://api.finneg.com/api/NacimientosHacienda',
   MUERTES:       'https://api.finneg.com/api/MuerteHacienda',
   TRASLADOS:     'https://api.finneg.com/api/TrasladosHacienda',

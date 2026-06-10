@@ -353,6 +353,7 @@ export default function TabTwoScreen() {
       Cabezas: toNumberOrNull(cabezas),
       Tropa: tropa || null,
       EstablecimientoCodigo: selectedCompany?.value || null,
+      EmpresaID: selectedCompany?.value || null,
     };
 
     return cleanObject(rawPayload);
