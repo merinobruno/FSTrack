@@ -163,21 +163,22 @@ export default function PedidoVentaScreen() {
   };
 
   const loadProductos = async () => {
-    const cacheKey = `productos_${user?.domainId}`;
+    const cacheKey = `productos_venta_${user?.domainId}`;
     const cached = await getCached<SelectOption[]>(cacheKey);
     if (cached) { setProductoOptions(cached); return; }
     setLoadingProductos(true);
     try {
       const token = await getToken();
-      const response = await fetch(`https://api.finneg.com/api/Producto/list?ACCESS_TOKEN=${token}`);
-      if (!response.ok) throw new Error(`Producto request failed: ${response.status}`);
+      const response = await fetch(`https://api.finneg.com/api/reports/PRODUCTOSVENTAAPI?ACCESS_TOKEN=${token}`);
+      if (!response.ok) throw new Error(`PRODUCTOSVENTAAPI request failed: ${response.status}`);
       const data = await response.json();
       const options: SelectOption[] = (Array.isArray(data) ? data : [])
         .map((item: any) => ({
-          label: item.nombre ?? item.Nombre ?? item.descripcion ?? item.Descripcion ?? item.codigo ?? item.Codigo ?? '',
-          value: item.codigo ?? item.Codigo ?? '',
+          label: (item.NOMBRE ?? item.nombre ?? '').trim(),
+          value: String(item.CODIGO ?? item.codigo ?? '').trim(),
         }))
-        .filter((item: SelectOption) => item.label && item.value);
+        .filter((item: SelectOption) => item.label && item.value)
+        .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
       setProductoOptions(options);
       await setCached(cacheKey, options);
     } catch (err: any) {

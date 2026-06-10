@@ -157,8 +157,8 @@ export default function PedidoCompraScreen() {
           return a === true || a === 'true' || a === 1 || a === '1';
         })
         .map((item: any) => ({
-          label: item.NOMBRE ?? item.nombre ?? item.DESCRIPCION ?? item.descripcion ?? item.CODIGO ?? item.codigo ?? '',
-          value: item.CODIGO ?? item.codigo ?? '',
+          label: (item.NOMBRE ?? item.nombre ?? item.DESCRIPCION ?? item.descripcion ?? item.CODIGO ?? item.codigo ?? '').trim(),
+          value: String(item.CODIGO ?? item.codigo ?? '').trim(),
         }))
         .filter((item: SelectOption) => item.label && item.value)
         .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }));
