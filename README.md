@@ -1,189 +1,207 @@
 # FSTrack
 
-Mobile app for livestock (hacienda) form submission, built by **Fisterra SRL**. FSTrack lets field operators log daily livestock events — milk production, births, deaths, transfers, and purchase/sale orders — and syncs them to the Finnegans ERP, even when offline.
+Aplicación móvil para la carga de formularios de hacienda, desarrollada por **Fisterra SRL**. FSTrack permite a los operarios de campo registrar eventos diarios de hacienda —producción de leche, nacimientos, muertes, traslados y pedidos de compra/venta— y sincronizarlos con el ERP Finnegans, incluso sin conexión.
 
 ---
 
-## What it does
+## Qué hace
 
-| Tab | Purpose |
-|-----|---------|
-| **Home** | Domain/account info and company (empresa) selector |
-| **Formularios** | Fill out livestock event forms |
-| **Pedidos** | Submit purchase and sale orders |
-| **Envíos** | View submission history and sync pending items |
+| Pestaña | Función |
+|---------|---------|
+| **Inicio** | Datos de dominio/cuenta y selector de empresa |
+| **Pedidos** | Envío de pedidos de compra y venta |
+| **Formularios** | Carga de formularios de eventos de hacienda |
+| **Ayuda** | Guía de uso para usuarios y administradores |
 
-### Forms available
+El historial de envíos no es una pestaña: se abre desde el ícono de portapapeles en la cabecera, disponible en Inicio, Formularios y Pedidos.
 
-- **Producción de Leche** — Daily milk production by lot
-- **Nacimientos** — Animal births
-- **Muertes** — Livestock deaths / losses
-- **Traslados y Cambios de Categoría** — Transfers between lots or establishments
-- **Pedido de Compra** — Purchase orders
-- **Pedido de Venta** — Sales orders
+### Formularios disponibles
+
+- **Producción de Leche** — Producción diaria por lote
+- **Nacimientos** — Nacimientos de animales
+- **Muertes** — Bajas y pérdidas de hacienda
+- **Traslados y Cambios de Categoría** — Movimientos entre lotes o establecimientos
+- **Novedades de Sueldo** — Novedades para la liquidación de sueldos
+- **Pedido de Compra** — Pedidos de compra
+- **Pedido de Venta** — Pedidos de venta
 
 ---
 
-## Tech stack
+## Stack técnico
 
-| Layer | Technology |
-|-------|-----------|
+| Capa | Tecnología |
+|------|-----------|
 | Framework | React Native 0.81 + Expo SDK 54 |
-| Router | Expo Router v6 (file-based) |
-| Language | TypeScript 5.9 |
-| Local DB | expo-sqlite (SQLite) |
-| State | React Context API |
+| Router | Expo Router v6 (basado en archivos) |
+| Lenguaje | TypeScript 5.9 |
+| Base de datos local | expo-sqlite (SQLite) |
+| Estado | React Context API |
 | Build/Deploy | EAS Build (`eas.json`) |
-| Platforms | iOS, Android, Web |
+| Plataformas | iOS, Android, Web |
 
 ---
 
-## Architecture
+## Arquitectura
 
 ```
 FSTrack/
 ├── app/
-│   ├── _layout.tsx              # Root layout — wraps all providers
-│   ├── login.tsx                # Login screen
+│   ├── _layout.tsx              # Layout raíz — envuelve todos los providers
+│   ├── login.tsx                # Pantalla de ingreso
 │   └── (tabs)/
-│       ├── index.tsx            # Home tab (company selector)
-│       ├── Envios.tsx           # Submission history tab
-│       ├── formularios/         # Livestock event forms
+│       ├── _layout.tsx          # Barra de pestañas + panel de envíos
+│       ├── index.tsx            # Pestaña Inicio (selector de empresa)
+│       ├── ayuda.tsx            # Guía de uso
+│       ├── Envios.tsx           # Historial de envíos (fuera de la barra)
+│       ├── formularios/         # Formularios de eventos de hacienda
+│       │   ├── index.tsx
 │       │   ├── produccion.tsx
 │       │   ├── nacimientos.tsx
 │       │   ├── muertes.tsx
-│       │   └── traslados.tsx
-│       └── pedidos/             # Order forms
+│       │   ├── traslados.tsx
+│       │   └── novedades.tsx
+│       └── pedidos/             # Formularios de pedidos
+│           ├── index.tsx
 │           ├── compra.tsx
 │           └── venta.tsx
-├── components/                  # Shared UI components
-├── contexts/                    # React Context providers
-│   ├── AuthContext.tsx          # Auth state + sign in/out
-│   ├── CompanyContext.tsx       # Selected company state
-│   ├── SubmissionsContext.tsx   # Offline queue + sync logic
-│   └── WorkflowContext.tsx      # Venta/Compra workflow codes
+├── components/
+│   ├── brand/                   # Biblioteca de componentes del sistema de diseño
+│   ├── app-header.tsx           # Acciones de cabecera compartidas
+│   ├── searchable-select.tsx    # Desplegable con buscador
+│   ├── envios-drawer.tsx        # Panel lateral de envíos
+│   ├── pending-review-modal.tsx # Edición y reintento de envíos con error
+│   └── SendConfirmationModal.tsx
+├── contexts/                    # Providers de React Context
+│   ├── AuthContext.tsx          # Sesión + ingreso/salida
+│   ├── CompanyContext.tsx       # Empresa seleccionada
+│   ├── SubmissionsContext.tsx   # Cola offline + lógica de sincronización
+│   └── WorkflowContext.tsx      # Códigos de workflow de venta/compra
 ├── constants/
-│   ├── api.ts                   # API base URL
-│   └── theme.ts                 # Colors and fonts
+│   ├── api.ts                   # URL base de la API
+│   └── theme.ts                 # Tokens del sistema de diseño Fisterra
 ├── utils/
-│   ├── local-db.native.ts       # SQLite helpers (native)
-│   ├── local-db.ts              # SQLite stub (web)
-│   ├── get-finnegans-token.ts   # Token exchange with FSTrack API
-│   ├── api-error.ts             # Error parsing helpers
-│   ├── options-cache.ts         # Dropdown option caching
-│   └── send-log.ts              # Submission audit log
+│   ├── local-db.native.ts       # Helpers de SQLite (nativo)
+│   ├── local-db.ts              # Stub de SQLite (web)
+│   ├── get-finnegans-token.ts   # Intercambio de token con la API de FSTrack
+│   ├── api-error.ts             # Parseo de errores
+│   ├── options-cache.ts         # Caché de opciones de desplegables
+│   └── send-log.ts              # Log de auditoría de envíos
 └── hooks/                       # useColorScheme, useThemeColor
 ```
 
 ---
 
-## Offline-first submission flow
+## Flujo de envío offline-first
 
-FSTrack is built to work in areas with poor connectivity. Every form submission goes through this flow:
+FSTrack está pensada para funcionar en zonas con mala conectividad. Todo envío sigue este flujo:
 
 ```
-User submits form
+El usuario envía el formulario
       │
       ▼
-Save to local SQLite (status = PENDING)
+Se guarda en SQLite local (status = PENDING)
       │
-      ├── Network available? ──Yes──► POST to Finnegans API
-      │                                     │
-      │                               ┌─────┴──────┐
-      │                            Success        Error
-      │                               │              │
-      │                         status=SENT    status=ERROR
+      ├── ¿Hay red? ──Sí──► POST a la API de Finnegans
+      │                             │
+      │                       ┌─────┴──────┐
+      │                     Éxito        Error
+      │                       │              │
+      │                 status=SENT    status=ERROR
       │
-      └── No network ──► status stays PENDING
+      └── Sin red ──► queda en PENDING
                               │
                               ▼
-                    App comes to foreground
+                 La app vuelve a primer plano
                               │
                               ▼
-                    Auto-sync all PENDING items
+                Sincroniza automáticamente todo lo PENDING
 ```
 
-Pending submissions are also visible on the **Envíos** tab, where users can manually trigger a sync.
+Los envíos pendientes también se ven en el panel de **Envíos**, donde el usuario puede forzar la sincronización a mano.
 
 ---
 
-## API integrations
+## Integraciones de API
 
-### FSTrack backend
-**Base URL:** `https://fstrack-gehqf3b4eqfed8aq.canadacentral-01.azurewebsites.net`
+### Backend de FSTrack
+**URL base:** `https://fstrack-gehqf3b4eqfed8aq.canadacentral-01.azurewebsites.net`
 
-| Endpoint | Method | Description |
+| Endpoint | Método | Descripción |
 |----------|--------|-------------|
-| `/auth/login` | POST | Authenticate with workspace, username, password |
-| `/auth/my-workflow` | GET | Fetch venta/compra workflow codes for the user |
-| `/log/mine` | GET | Fetch this user's submission audit log |
+| `/auth/login` | POST | Autenticación con espacio de trabajo, cuenta y contraseña |
+| `/auth/my-companies` | GET | Empresas asignadas a la cuenta |
+| `/auth/my-workflow` | GET | Códigos de workflow de venta/compra del usuario |
+| `/finnegans/token` | GET | Intercambio de token contra Finnegans |
+| `/log` | POST | Registro de auditoría de un envío |
+| `/log/mine` | GET | Historial de envíos del usuario |
 
-Authentication uses **Bearer tokens** stored in AsyncStorage under the key `fstrack_auth_user`.
+La autenticación usa **tokens Bearer** guardados en AsyncStorage bajo la clave `fstrack_auth_user`.
 
-### Finnegans ERP
-**Base URL:** `https://api.finneg.com/api`
+### ERP Finnegans
+**URL base:** `https://api.finneg.com/api`
 
-Forms are submitted to Finnegans using a short-lived token obtained by exchanging the FSTrack JWT. The token exchange happens transparently inside `utils/get-finnegans-token.ts`.
+Los formularios se envían a Finnegans con un token de vida corta que se obtiene intercambiando el JWT de FSTrack. El intercambio ocurre de forma transparente en `utils/get-finnegans-token.ts`. El token viaja como parámetro `?ACCESS_TOKEN=`, no como header.
 
-| Form type | Endpoint |
-|-----------|----------|
-| Producción | `/produccionLeche` |
+| Tipo de formulario | Endpoint |
+|--------------------|----------|
+| Producción | `/produccionLeche2` |
 | Nacimientos | `/NacimientosHacienda` |
 | Muertes | `/MuerteHacienda` |
 | Traslados | `/TrasladosHacienda` |
+| Novedades de Sueldo | `/novedadLiquidacionSueldo` |
 | Pedido Compra | `/pedidoCompra` |
 | Pedido Venta | `/pedidoVenta` |
 
 ---
 
-## Getting started
+## Puesta en marcha
 
-### Prerequisites
+### Requisitos previos
 
 - Node.js 18+
 - [Expo CLI](https://docs.expo.dev/get-started/installation/) (`npm install -g expo-cli`)
-- For iOS: Xcode + iOS Simulator
-- For Android: Android Studio + emulator, or a physical device with Expo Go
+- Para iOS: Xcode + simulador de iOS
+- Para Android: Android Studio + emulador, o un dispositivo físico con Expo Go
 
-### Install
+### Instalación
 
 ```bash
 cd FSTrack
 npm install
 ```
 
-### Run
+### Ejecución
 
 ```bash
-# Start dev server (choose platform in terminal)
+# Levantar el servidor de desarrollo (la plataforma se elige en la terminal)
 npm start
 
-# Run directly on a platform
+# Ejecutar directamente en una plataforma
 npm run ios
 npm run android
 npm run web
 ```
 
-### Build (production)
+### Build de producción
 
-FSTrack uses EAS Build. Make sure you have the EAS CLI installed and are logged into the `bmerino` Expo account.
+FSTrack usa EAS Build. Verificar que el CLI de EAS esté instalado y que la sesión sea la de la cuenta `bmerino` de Expo.
 
 ```bash
 npm install -g eas-cli
-eas build --platform android   # or ios / all
+eas build --platform android   # o ios / all
 ```
 
 ---
 
-## Local database schema
+## Esquema de la base local
 
-The app maintains a local SQLite database (`fstrack.db`) with a single table:
+La app mantiene una base SQLite local (`fstrack.db`) con una única tabla:
 
 ```sql
 CREATE TABLE submissions (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  form_type     TEXT NOT NULL,   -- PRODUCCION | NACIMIENTOS | MUERTES | TRASLADOS | PEDIDO_COMPRA | PEDIDO_VENTA
-  payload       TEXT NOT NULL,   -- JSON payload sent to Finnegans
+  form_type     TEXT NOT NULL,   -- PRODUCCION | NACIMIENTOS | MUERTES | TRASLADOS | PEDIDO_COMPRA | PEDIDO_VENTA | NOVEDADES_SUELDO
+  payload       TEXT NOT NULL,   -- JSON enviado a Finnegans
   status        TEXT NOT NULL DEFAULT 'PENDING',  -- PENDING | SENT | ERROR
   company_label TEXT,
   created_at    TEXT NOT NULL,
@@ -194,23 +212,35 @@ CREATE TABLE submissions (
 
 ---
 
-## Login
+## Ingreso
 
-Users log in with three fields:
+El ingreso se hace con tres datos:
 
-| Field | Description |
+| Campo | Descripción |
 |-------|-------------|
-| **Workspace** | The organisation's domain/slug |
-| **Cuenta** | Username |
-| **Password** | Password |
+| **Espacio de trabajo** | Dominio de la organización |
+| **Cuenta** | Nombre de usuario |
+| **Contraseña** | Contraseña |
 
-Sessions are persisted to AsyncStorage and restored automatically on app launch.
+Las sesiones se guardan en AsyncStorage y se restauran automáticamente al abrir la app.
 
 ---
 
-## Contributing
+## Diseño
 
-1. Make sure `npm run lint` passes before committing (`eslint-config-expo` rules).
-2. The app uses **typed routes** (`experiments.typedRoutes: true`) — keep route strings type-safe.
-3. Any new form type must be added to the `FormType` union in `utils/local-db.native.ts` and a corresponding endpoint added to `ENDPOINTS` in `contexts/SubmissionsContext.tsx`.
-4. Test offline behaviour: put the device in airplane mode, submit a form, then restore connectivity and verify the Envíos tab syncs.
+La app implementa el sistema de diseño de Fisterra: Montserrat sobre fondo gris, titulares pareados en rojo y azul tinta, paneles de esquinas redondeadas y pills con degradé navy.
+
+- Los tokens viven en `constants/theme.ts`. No usar colores ni tamaños hardcodeados en las pantallas.
+- Los componentes vienen de `components/brand/` (`Screen`, `Panel`, `PairedHeading`, `Field`, `StatusBox`, `Button`, entre otros). Las pantallas de formulario se arman como `FormScreen > FormSection > ItemCard`.
+- La app es de **modo claro únicamente**: el sistema no define variante oscura.
+- El rojo de marca solo se usa en carga tipográfica grande (≥24px bold) o en el isotipo — no pasa contraste en cuerpo de texto.
+
+---
+
+## Cómo contribuir
+
+1. Verificar que `npm run lint` pase antes de hacer commit (reglas de `eslint-config-expo`).
+2. La app usa **rutas tipadas** (`experiments.typedRoutes: true`) — mantener los strings de ruta type-safe.
+3. Todo nuevo tipo de formulario debe agregarse a la unión `FormType` en `utils/local-db.native.ts` **y** en el stub web `utils/local-db.ts`, con su endpoint correspondiente en el mapa `ENDPOINTS` de `contexts/SubmissionsContext.tsx`.
+4. Construir las pantallas con los componentes de `components/brand/` en lugar de escribir paneles, inputs o cajas de estado a mano.
+5. Probar el comportamiento offline: poner el dispositivo en modo avión, enviar un formulario, restablecer la conexión y verificar que el panel de Envíos sincronice.
