@@ -1,20 +1,19 @@
 import { router } from 'expo-router';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Button,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import SendConfirmationModal from '@/components/SendConfirmationModal';
+import {
+  Button,
+  Field,
+  FormScreen,
+  FormSection,
+  ItemCard,
+  SecondaryButton,
+  StatusBox,
+} from '@/components/brand';
 import { SearchableSelect } from '@/components/searchable-select';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Fonts } from '@/constants/theme';
+import SendConfirmationModal from '@/components/SendConfirmationModal';
+import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useSubmissions } from '@/contexts/SubmissionsContext';
@@ -22,7 +21,6 @@ import { useWorkflow } from '@/contexts/WorkflowContext';
 import { ApiError } from '@/utils/api-error';
 import { getFinnegansToken } from '@/utils/get-finnegans-token';
 import { getCached, setCached } from '@/utils/options-cache';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 const isEmptyValue = (value: any) =>
   value === null || value === undefined || value === '';
@@ -103,37 +101,6 @@ const createEmptyItem = (): VentaItem => ({
   USRFechaEntrega: getTodayDate(),
   Descripcion: '',
 });
-
-type InputFieldProps = {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  keyboardType?: 'default' | 'numeric';
-};
-
-function InputField({ label, value, onChangeText, keyboardType = 'default' }: InputFieldProps) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
-  return (
-    <>
-      <ThemedText>{label}</ThemedText>
-      <View
-        style={[
-          styles.inputContainer,
-          { backgroundColor: isDark ? '#1f1f1f' : '#ebebeb', borderColor: isDark ? '#555' : '#999' },
-        ]}
-      >
-        <TextInput
-          style={[styles.input, { color: isDark ? '#fff' : '#111', backgroundColor: 'transparent' }]}
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType={keyboardType}
-          placeholderTextColor={isDark ? '#aaa' : '#666'}
-        />
-      </View>
-    </>
-  );
-}
 
 export default function PedidoVentaScreen() {
   const { user } = useAuth();
@@ -283,29 +250,13 @@ export default function PedidoVentaScreen() {
   };
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#b8e8d4', dark: '#0f2d1f' }}
-      headerImage={
-        <MaterialCommunityIcons
-          size={200}
-          color="white"
-          name="tag-outline"
-          style={styles.headerImage}
-        />
-      }
+    <FormScreen
+      title="PEDIDO"
+      subtitle="de venta"
+      company={selectedCompany?.label}
     >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
-          Pedido de Venta{selectedCompany ? ` - ${selectedCompany.label}` : ' - Sin empresa'}
-        </ThemedText>
-      </ThemedView>
-
-      <ThemedText>Formulario de Pedido de Venta.</ThemedText>
-
-      <ThemedView style={styles.formContainer}>
-        <ThemedText type="subtitle">Datos del pedido</ThemedText>
-
-        <InputField label="Fecha" value={fecha} onChangeText={setFecha} />
+      <FormSection title="Datos del pedido">
+        <Field label="Fecha" value={fecha} onChangeText={setFecha} />
 
         <SearchableSelect
           label="Cliente"
@@ -316,16 +267,19 @@ export default function PedidoVentaScreen() {
           loading={loadingClientes}
         />
 
-        <InputField label="Descripcion" value={descripcion} onChangeText={setDescripcion} />
+        <Field label="Descripción" value={descripcion} onChangeText={setDescripcion} />
+      </FormSection>
 
-        <ThemedText type="subtitle">Ítems</ThemedText>
-
+      <FormSection title="Ítems">
         {items.map((item, index) => (
-          <ThemedView key={index} style={styles.miniForm}>
-            <ThemedText style={styles.itemTitle}>Ítem {index + 1}</ThemedText>
-
+          <ItemCard
+            key={index}
+            index={index}
+            total={items.length}
+            onRemove={items.length > 1 ? () => removeItem(index) : undefined}
+          >
             <SearchableSelect
-              label="ProductoCodigo"
+              label="Producto"
               selectedValue={item.ProductoCodigo}
               options={productoOptions}
               onValueChange={(value) => updateItem(index, 'ProductoCodigo', value)}
@@ -333,118 +287,60 @@ export default function PedidoVentaScreen() {
               loading={loadingProductos}
             />
 
-            <InputField
+            <Field
               label="Cantidad"
               value={item.Cantidad}
               onChangeText={(text) => updateItem(index, 'Cantidad', text)}
-              keyboardType="numeric"
+              numeric
             />
 
-            <InputField
+            <Field
               label="Precio"
               value={item.Precio}
               onChangeText={(text) => updateItem(index, 'Precio', text)}
-              keyboardType="numeric"
+              numeric
             />
 
-            <InputField
-              label="Descripcion"
+            <Field
+              label="Descripción"
               value={item.Descripcion}
               onChangeText={(text) => updateItem(index, 'Descripcion', text)}
             />
-
-            <View style={styles.itemButtons}>
-              <Button title="Agregar ítem" onPress={addItem} />
-              {items.length > 1 && (
-                <Button title="Quitar ítem" onPress={() => removeItem(index)} color="#b00020" />
-              )}
-            </View>
-          </ThemedView>
+          </ItemCard>
         ))}
 
-        <Button title={loading ? 'Enviando...' : 'Enviar'} onPress={handleSendPress} disabled={loading} />
-        {loading && <ActivityIndicator />}
+        <SecondaryButton title="Agregar ítem" onPress={addItem} />
+      </FormSection>
+
+      <View style={styles.footer}>
+        <Button
+          title="Enviar"
+          variant="accent"
+          onPress={handleSendPress}
+          loading={loading}
+        />
 
         {error && (
-          <View style={styles.errorBox}>
-            <ThemedText style={styles.errorTitle}>{error.title}</ThemedText>
-            {error.detail && <ThemedText style={styles.errorDetail}>{error.detail}</ThemedText>}
-          </View>
+          <StatusBox variant="error" title={error.title} detail={error.detail} />
         )}
-        <SendConfirmationModal
-          visible={confirmVisible}
-          title="¿Estás seguro?"
-          payload={buildPayload()}
-          onCancel={() => setConfirmVisible(false)}
-          onConfirm={async () => { setConfirmVisible(false); await submitVenta(); }}
-          confirmText="Confirmar"
-          cancelText="Cancelar"
-        />
-      </ThemedView>
-    </ParallaxScrollView>
+      </View>
+
+      <SendConfirmationModal
+        visible={confirmVisible}
+        title="¿Estás seguro?"
+        payload={buildPayload()}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={async () => {
+          setConfirmVisible(false);
+          await submitVenta();
+        }}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+      />
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: { position: 'absolute' },
-  titleContainer: { flexDirection: 'row', gap: 8 },
-  formContainer: {
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(83, 83, 83, 0.07)',
-  },
-  miniForm: {
-    gap: 10,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  itemTitle: { fontSize: 16, fontWeight: '600' },
-  itemButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginTop: 8,
-  },
-  inputContainer: {
-    borderWidth: 0,
-    borderRadius: 10,
-    minHeight: 56,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  input: {
-    width: '100%',
-    minHeight: 56,
-    fontSize: 16,
-    paddingVertical: 0,
-  },
-  successBox: {
-    backgroundColor: 'rgba(16,185,129,0.08)',
-    borderColor: 'rgba(16,185,129,0.3)',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-  },
-  successText: { color: '#059669', fontSize: 14, fontWeight: '600' as const },
-  queueBox: {
-    backgroundColor: 'rgba(234,179,8,0.08)',
-    borderColor: 'rgba(234,179,8,0.35)',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-  },
-  queueText: { color: '#b45309', fontSize: 14 },
-  errorBox: {
-    backgroundColor: '#dc2626',
-    borderColor: '#991b1b',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    gap: 4,
-  },
-  errorTitle: { color: '#ffffff', fontSize: 14, fontWeight: '700' as const },
-  errorDetail: { color: '#fee2e2', fontSize: 13 },
+  footer: { gap: Spacing.md },
 });

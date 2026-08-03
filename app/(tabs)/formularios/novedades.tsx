@@ -1,26 +1,25 @@
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+import {
+  Button,
+  Field,
+  FormScreen,
+  FormSection,
+  ItemCard,
+  SecondaryButton,
+  StatusBox,
+} from '@/components/brand';
 import { SearchableSelect, SelectOption } from '@/components/searchable-select';
 import SendConfirmationModal from '@/components/SendConfirmationModal';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Fonts } from '@/constants/theme';
+import { FontFamily, Palette, Semantic, Spacing, Type } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useSubmissions } from '@/contexts/SubmissionsContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { ApiError } from '@/utils/api-error';
 import { getFinnegansToken } from '@/utils/get-finnegans-token';
 import { getCached, setCached } from '@/utils/options-cache';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Button,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
 
 const toNumberOrZero = (value: string) => {
   if (!value?.trim()) return 0;
@@ -58,55 +57,6 @@ const createEmptyItem = (fecha: string): NovedadItem => ({
   FechaHasta: '',
   Tipo: '0',
 });
-
-type InputFieldProps = {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  keyboardType?: 'default' | 'numeric';
-  placeholder?: string;
-};
-
-function InputField({
-  label,
-  value,
-  onChangeText,
-  keyboardType = 'default',
-  placeholder,
-}: InputFieldProps) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
-
-  return (
-    <>
-      <ThemedText>{label}</ThemedText>
-      <View
-        style={[
-          styles.inputContainer,
-          {
-            backgroundColor: isDark ? '#1f1f1f' : '#ebebeb',
-            borderColor: isDark ? '#555' : '#999',
-          },
-        ]}
-      >
-        <TextInput
-          style={[
-            styles.input,
-            {
-              color: isDark ? '#fff' : '#111',
-              backgroundColor: 'transparent',
-            },
-          ]}
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType={keyboardType}
-          placeholder={placeholder}
-          placeholderTextColor={isDark ? '#aaa' : '#666'}
-        />
-      </View>
-    </>
-  );
-}
 
 export default function NovedadesScreen() {
   const { selectedCompany } = useCompany();
@@ -350,48 +300,34 @@ export default function NovedadesScreen() {
   };
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <MaterialCommunityIcons
-          name="account-cash-outline"
-          size={200}
-          color="white"
-          style={styles.headerImage}
-        />
-      }
+    <FormScreen
+      title="NOVEDADES"
+      subtitle="de sueldo"
+      company={selectedCompany?.label}
     >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
-          Novedades {selectedCompany ? `- ${selectedCompany.label}` : '- Sin empresa'}
-        </ThemedText>
-      </ThemedView>
-
-      <ThemedText>Formulario de novedades para liquidacion de sueldos.</ThemedText>
-
-      <ThemedView style={styles.formContainer}>
-        <ThemedText type="subtitle">Datos principales</ThemedText>
-
+      <FormSection title="Datos principales">
         {selectedCompany && (
-          <View style={styles.infoBox}>
-            <ThemedText style={styles.infoText}>
-              EmpresaCodigo: {selectedCompany.value}
-            </ThemedText>
+          <View style={styles.companyRow}>
+            <Text style={styles.companyLabel}>Código de empresa</Text>
+            <Text style={styles.companyValue}>{selectedCompany.value}</Text>
           </View>
         )}
 
-        <InputField label="Fecha" value={fecha} onChangeText={setFecha} />
-        <InputField label="Descripcion" value={descripcion} onChangeText={setDescripcion} />
+        <Field label="Fecha" value={fecha} onChangeText={setFecha} />
+        <Field label="Descripcion" value={descripcion} onChangeText={setDescripcion} />
+      </FormSection>
 
-        <ThemedText type="subtitle">NovedadesLiquidacionSueldosLegajo</ThemedText>
-
+      <FormSection title="Legajos">
         {items.map((item, index) => (
-          <ThemedView key={index} style={styles.miniForm}>
-            <ThemedText style={styles.itemTitle}>Item {index + 1}</ThemedText>
-
+          <ItemCard
+            key={index}
+            index={index}
+            total={items.length}
+            onRemove={items.length > 1 ? () => removeItem(index) : undefined}
+          >
             {tipoOptions.length > 0 ? (
               <SearchableSelect
-                label="TipoNovedadCodigo"
+                label="Tipo de novedad"
                 selectedValue={item.TipoNovedadCodigo}
                 options={tipoOptions}
                 onValueChange={(value) => updateItemField(index, 'TipoNovedadCodigo', value)}
@@ -399,30 +335,28 @@ export default function NovedadesScreen() {
                 loading={loadingTipos}
               />
             ) : (
-              <>
-                <InputField
-                  label="TipoNovedadCodigo"
+              <View style={styles.fallback}>
+                <Field
+                  label="Tipo de novedad"
                   value={item.TipoNovedadCodigo}
                   onChangeText={(text) => updateItemField(index, 'TipoNovedadCodigo', text)}
                   placeholder="Código manual (ej: VACACIONES)"
                 />
                 {loadingTipos ? null : (
-                  <View style={styles.tipoRetryRow}>
-                    {tipoLoadError ? (
-                      <ThemedText style={styles.tipoErrorText}>{tipoLoadError}</ThemedText>
-                    ) : (
-                      <ThemedText style={styles.helpText}>
-                        No se encontraron tipos para este dominio.
-                      </ThemedText>
-                    )}
-                    <Button title="Reintentar" onPress={loadTipos} />
-                  </View>
+                  <>
+                    <StatusBox
+                      variant="pending"
+                      title={tipoLoadError ?? 'No se encontraron tipos para este dominio.'}
+                      detail="Podés cargar el código a mano o reintentar."
+                    />
+                    <SecondaryButton title="Reintentar" onPress={loadTipos} />
+                  </>
                 )}
-              </>
+              </View>
             )}
 
             <SearchableSelect
-              label="PersonaCodigo"
+              label="Empleado"
               selectedValue={item.PersonaCodigo}
               options={personaOptions}
               onValueChange={(value) => updateItemField(index, 'PersonaCodigo', value)}
@@ -430,169 +364,83 @@ export default function NovedadesScreen() {
               loading={loadingPersonas}
             />
             {!loadingPersonas && personaOptions.length === 0 && (
-              <ThemedText style={styles.helpText}>
+              <Text style={styles.helpText}>
                 No se encontraron empleados para mostrar.
-              </ThemedText>
+              </Text>
             )}
 
-            <InputField
+            <Field
               label="Valor"
               value={item.Valor}
               onChangeText={(text) => updateItemField(index, 'Valor', text)}
-              keyboardType="numeric"
+              numeric
             />
-            <InputField label="Fecha" value={item.Fecha} onChangeText={(text) => updateItemField(index, 'Fecha', text)} />
-            <InputField label="Descripcion" value={item.Descripcion} onChangeText={(text) => updateItemField(index, 'Descripcion', text)} />
-
-            <View style={styles.itemButtons}>
-              <Button title="Agregar item" onPress={addItem} />
-              {items.length > 1 && (
-                <Button title="Quitar item" onPress={() => removeItem(index)} color="#b00020" />
-              )}
-            </View>
-          </ThemedView>
+            <Field
+              label="Fecha"
+              value={item.Fecha}
+              onChangeText={(text) => updateItemField(index, 'Fecha', text)}
+            />
+            <Field
+              label="Descripcion"
+              value={item.Descripcion}
+              onChangeText={(text) => updateItemField(index, 'Descripcion', text)}
+            />
+          </ItemCard>
         ))}
 
-        <Button
-          title={loading ? 'Enviando...' : 'Enviar'}
-          onPress={handleSendPress}
-          disabled={loading}
-        />
+        <SecondaryButton title="Agregar item" onPress={addItem} />
+      </FormSection>
 
-        {loading && <ActivityIndicator style={styles.loader} />}
+      <View style={styles.footer}>
+        <Button
+          title="Enviar"
+          variant="accent"
+          onPress={handleSendPress}
+          loading={loading}
+        />
 
         {error && (
-          <View style={styles.errorBox}>
-            <ThemedText style={styles.errorTitle}>{error.title}</ThemedText>
-            {error.detail && <ThemedText style={styles.errorDetail}>{error.detail}</ThemedText>}
-          </View>
+          <StatusBox variant="error" title={error.title} detail={error.detail} />
         )}
-        <SendConfirmationModal
-          visible={confirmVisible}
-          title="Estas seguro?"
-          payload={buildPayload()}
-          onCancel={() => setConfirmVisible(false)}
-          onConfirm={async () => {
-            setConfirmVisible(false);
-            await submitNovedades();
-          }}
-          confirmText="Confirmar"
-          cancelText="Cancelar"
-        />
-      </ThemedView>
-    </ParallaxScrollView>
+      </View>
+
+      <SendConfirmationModal
+        visible={confirmVisible}
+        title="Estas seguro?"
+        payload={buildPayload()}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={async () => {
+          setConfirmVisible(false);
+          await submitNovedades();
+        }}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+      />
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: { position: 'absolute' },
-  titleContainer: { flexDirection: 'row', gap: 8 },
-  formContainer: {
-    gap: 12,
-    marginTop: 12,
-    marginBottom: 20,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(83, 83, 83, 0.07)',
-  },
-  miniForm: {
-    gap: 10,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  itemButtons: {
+  footer: { gap: Spacing.md },
+  fallback: { gap: Spacing.md },
+  companyRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 10,
-    marginTop: 8,
+    alignItems: 'baseline',
+    gap: Spacing.md,
   },
-  infoBox: {
-    backgroundColor: 'rgba(14,165,233,0.08)',
-    borderColor: 'rgba(14,165,233,0.28)',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
+  companyLabel: {
+    ...Type.label,
+    fontFamily: FontFamily.medium,
+    color: Palette.steelText,
   },
-  infoText: {
-    color: '#0284c7',
-    fontSize: 13,
-    fontWeight: '600' as const,
+  companyValue: {
+    ...Type.body,
+    fontFamily: FontFamily.semibold,
+    color: Palette.navy,
   },
   helpText: {
-    color: '#b45309',
-    fontSize: 12,
-  },
-  inputContainer: {
-    borderWidth: 0,
-    borderRadius: 10,
-    minHeight: 56,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  input: {
-    width: '100%',
-    minHeight: 56,
-    fontSize: 16,
-    paddingVertical: 0,
-  },
-  loader: {
-    marginTop: 8,
-  },
-  successBox: {
-    backgroundColor: 'rgba(16,185,129,0.08)',
-    borderColor: 'rgba(16,185,129,0.3)',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-  },
-  successText: {
-    color: '#059669',
-    fontSize: 14,
-    fontWeight: '600' as const,
-  },
-  queueBox: {
-    backgroundColor: 'rgba(234,179,8,0.08)',
-    borderColor: 'rgba(234,179,8,0.35)',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-  },
-  queueText: {
-    color: '#b45309',
-    fontSize: 14,
-  },
-  errorBox: {
-    backgroundColor: '#dc2626',
-    borderColor: '#991b1b',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    gap: 4,
-  },
-  errorTitle: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700' as const,
-  },
-  errorDetail: {
-    color: '#fee2e2',
-    fontSize: 13,
-  },
-  tipoRetryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  tipoErrorText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#b45309',
+    ...Type.caption,
+    color: Semantic.pending,
   },
 });

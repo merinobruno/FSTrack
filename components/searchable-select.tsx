@@ -1,4 +1,3 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useState } from 'react';
 import {
@@ -11,7 +10,15 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { ThemedText } from '@/components/themed-text';
+
+import {
+  Effects,
+  FontFamily,
+  Palette,
+  Radius,
+  Spacing,
+  Type,
+} from '@/constants/theme';
 
 export type SelectOption = { label: string; value: string };
 
@@ -22,7 +29,10 @@ type Props = {
   onValueChange: (value: string) => void;
   placeholder?: string;
   loading?: boolean;
+  optional?: boolean;
 };
+
+const INITIAL_LIMIT = 20;
 
 export function SearchableSelect({
   label,
@@ -31,20 +41,11 @@ export function SearchableSelect({
   onValueChange,
   placeholder = 'Seleccionar...',
   loading = false,
+  optional = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
 
-  const bg = isDark ? '#1f1f1f' : '#ebebeb';
-  const textColor = isDark ? '#fff' : '#111';
-  const subtleColor = isDark ? '#9ca3af' : '#6b7280';
-  const sheetBg = isDark ? '#1c1c1e' : '#fff';
-  const dividerColor = isDark ? '#2c2c2e' : '#f0f0f0';
-  const searchBg = isDark ? '#2c2c2e' : '#f2f2f7';
-
-  const INITIAL_LIMIT = 20;
   const selected = options.find((o) => o.value === selectedValue);
   const filtered = query.trim()
     ? (() => {
@@ -56,26 +57,41 @@ export function SearchableSelect({
       })()
     : options.slice(0, INITIAL_LIMIT);
 
-  const close = () => { setOpen(false); setQuery(''); };
+  const close = () => {
+    setOpen(false);
+    setQuery('');
+  };
 
   return (
-    <>
-      <ThemedText>{label}</ThemedText>
+    <View style={s.wrap}>
+      <View style={s.labelRow}>
+        <Text style={s.label}>{label}</Text>
+        {optional ? <Text style={s.optional}>opcional</Text> : null}
+      </View>
+
       <Pressable
-        style={[s.trigger, { backgroundColor: bg }]}
-        onPress={() => { if (!loading) setOpen(true); }}
+        style={({ pressed }) => [s.trigger, pressed && s.triggerPressed]}
+        onPress={() => {
+          if (!loading) setOpen(true);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={`${label}: ${selected?.label ?? placeholder}`}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={subtleColor} />
+          <ActivityIndicator size="small" color={Palette.navy} />
         ) : (
           <>
             <Text
-              style={[s.triggerText, { color: selected ? textColor : subtleColor }]}
+              style={[s.triggerText, !selected && s.triggerPlaceholder]}
               numberOfLines={1}
             >
               {selected?.label ?? placeholder}
             </Text>
-            <MaterialCommunityIcons name="chevron-down" size={20} color={subtleColor} />
+            <MaterialCommunityIcons
+              name="chevron-down"
+              size={20}
+              color={Palette.navy}
+            />
           </>
         )}
       </Pressable>
@@ -83,34 +99,42 @@ export function SearchableSelect({
       <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
         <View style={s.overlay}>
           <Pressable style={StyleSheet.absoluteFill} onPress={close} />
-          <View style={[s.sheet, { backgroundColor: sheetBg }]}>
 
-            {/* Search bar */}
-            <View style={[s.searchRow, { backgroundColor: searchBg }]}>
-              <MaterialCommunityIcons name="magnify" size={18} color={subtleColor} />
+          <View style={s.sheet}>
+            <View style={s.grabber} />
+
+            <Text style={s.sheetTitle}>{label}</Text>
+
+            <View style={s.searchRow}>
+              <MaterialCommunityIcons name="magnify" size={18} color={Palette.steelText} />
               <TextInput
-                style={[s.searchInput, { color: textColor }]}
+                style={s.searchInput}
                 value={query}
                 onChangeText={setQuery}
                 placeholder="Buscar..."
-                placeholderTextColor={subtleColor}
+                placeholderTextColor={Palette.steelText}
                 autoFocus
               />
               {query.length > 0 && (
                 <Pressable onPress={() => setQuery('')} hitSlop={8}>
-                  <MaterialCommunityIcons name="close-circle" size={16} color={subtleColor} />
+                  <MaterialCommunityIcons
+                    name="close-circle"
+                    size={16}
+                    color={Palette.steelText}
+                  />
                 </Pressable>
               )}
             </View>
 
-            {/* Options list */}
             <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.list}>
-              {/* Clear / placeholder row */}
               <Pressable
-                style={[s.option, { borderBottomColor: dividerColor }]}
-                onPress={() => { onValueChange(''); close(); }}
+                style={s.option}
+                onPress={() => {
+                  onValueChange('');
+                  close();
+                }}
               >
-                <Text style={[s.optionText, { color: subtleColor }]}>{placeholder}</Text>
+                <Text style={[s.optionText, s.optionPlaceholder]}>{placeholder}</Text>
               </Pressable>
 
               {filtered.map((o) => {
@@ -118,18 +142,23 @@ export function SearchableSelect({
                 return (
                   <Pressable
                     key={o.value}
-                    style={[
-                      s.option,
-                      { borderBottomColor: dividerColor },
-                      isSelected && s.optionSelected,
-                    ]}
-                    onPress={() => { onValueChange(o.value); close(); }}
+                    style={[s.option, isSelected && s.optionSelected]}
+                    onPress={() => {
+                      onValueChange(o.value);
+                      close();
+                    }}
                   >
-                    <Text style={[s.optionText, { color: textColor }, isSelected && s.optionTextSelected]}>
+                    <Text
+                      style={[s.optionText, isSelected && s.optionTextSelected]}
+                    >
                       {o.label}
                     </Text>
                     {isSelected && (
-                      <MaterialCommunityIcons name="check" size={18} color="#6366f1" />
+                      <MaterialCommunityIcons
+                        name="check"
+                        size={18}
+                        color={Palette.navy}
+                      />
                     )}
                   </Pressable>
                 );
@@ -137,7 +166,7 @@ export function SearchableSelect({
 
               {!query.trim() && options.length > INITIAL_LIMIT && (
                 <View style={s.empty}>
-                  <Text style={{ color: subtleColor, fontSize: 13 }}>
+                  <Text style={s.emptyText}>
                     Mostrando {INITIAL_LIMIT} de {options.length} — buscá para filtrar
                   </Text>
                 </View>
@@ -145,83 +174,131 @@ export function SearchableSelect({
 
               {filtered.length === 0 && (
                 <View style={s.empty}>
-                  <Text style={{ color: subtleColor, fontSize: 14 }}>Sin resultados</Text>
+                  <Text style={s.emptyText}>Sin resultados</Text>
                 </View>
               )}
             </ScrollView>
           </View>
         </View>
       </Modal>
-    </>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
+  wrap: { gap: 6 },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
+  label: {
+    ...Type.label,
+    fontFamily: FontFamily.medium,
+    color: Palette.navy,
+  },
+  optional: {
+    ...Type.micro,
+    color: Palette.steelText,
+    fontStyle: 'italic',
+  },
+
   trigger: {
-    borderRadius: 10,
-    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.sm,
+    minHeight: 46,
     paddingHorizontal: 14,
-    gap: 8,
+    backgroundColor: Palette.white,
+    borderWidth: 1,
+    borderColor: Effects.edge,
+    borderRadius: Radius.field,
   },
+  triggerPressed: { borderColor: Palette.navy },
   triggerText: {
     flex: 1,
-    fontSize: 16,
+    ...Type.body,
+    fontFamily: FontFamily.regular,
+    color: Palette.ink,
   },
+  triggerPlaceholder: { color: Palette.steelText },
 
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(10, 47, 67, 0.45)',
   },
   sheet: {
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: '65%',
-    paddingTop: 8,
-    paddingBottom: 32,
+    backgroundColor: Palette.surfaceHigh,
+    borderTopLeftRadius: Radius.panel,
+    borderTopRightRadius: Radius.panel,
+    borderTopWidth: 1.5,
+    borderColor: Effects.hairline,
+    maxHeight: '70%',
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xxl,
+  },
+  grabber: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 999,
+    backgroundColor: Palette.steel,
+    marginBottom: Spacing.sm,
+  },
+  sheetTitle: {
+    ...Type.section,
+    fontFamily: FontFamily.semibold,
+    color: Palette.navy,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.sm,
   },
 
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 12,
-    marginBottom: 4,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
     gap: 6,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    backgroundColor: Palette.white,
+    borderWidth: 1,
+    borderColor: Effects.edge,
+    borderRadius: Radius.field,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    ...Type.body,
+    fontFamily: FontFamily.regular,
+    color: Palette.ink,
     paddingVertical: 0,
   },
 
-  list: {
-    paddingBottom: 8,
-  },
+  list: { paddingBottom: Spacing.sm },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 1,
+    borderBottomColor: Effects.hairline,
   },
-  optionSelected: {
-    backgroundColor: 'rgba(99,102,241,0.08)',
-  },
+  optionSelected: { backgroundColor: 'rgba(10, 47, 67, 0.06)' },
   optionText: {
     flex: 1,
-    fontSize: 15,
+    ...Type.body,
+    fontFamily: FontFamily.regular,
+    color: Palette.ink,
   },
+  optionPlaceholder: { color: Palette.steelText },
   optionTextSelected: {
-    color: '#6366f1',
-    fontWeight: '500',
+    fontFamily: FontFamily.semibold,
+    color: Palette.navy,
   },
-  empty: {
-    alignItems: 'center',
-    paddingVertical: 24,
+  empty: { alignItems: 'center', paddingVertical: Spacing.xl },
+  emptyText: {
+    ...Type.label,
+    color: Palette.steelText,
   },
 });

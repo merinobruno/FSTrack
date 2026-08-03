@@ -1,19 +1,19 @@
 import { router } from 'expo-router';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Button,
-  StyleSheet,
-  TextInput,
-  View
-} from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+import {
+  Button,
+  Field,
+  FormScreen,
+  FormSection,
+  ItemCard,
+  SecondaryButton,
+  StatusBox,
+} from '@/components/brand';
+import { SearchableSelect } from '@/components/searchable-select';
 import SendConfirmationModal from '@/components/SendConfirmationModal';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Fonts } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useSubmissions } from '@/contexts/SubmissionsContext';
@@ -21,8 +21,6 @@ import { useWorkflow } from '@/contexts/WorkflowContext';
 import { ApiError } from '@/utils/api-error';
 import { getFinnegansToken } from '@/utils/get-finnegans-token';
 import { getCached, setCached } from '@/utils/options-cache';
-import { SearchableSelect } from '@/components/searchable-select';
-import AntDesign from '@expo/vector-icons/AntDesign';
 
 const isEmptyValue = (value: any) =>
   value === null || value === undefined || value === '';
@@ -108,56 +106,7 @@ const createEmptyMovimientoItem = (): MovimientoItem => ({
   OrganizacionStockCodigo: '',
 });
 
-type InputFieldProps = {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  keyboardType?: 'default' | 'numeric';
-};
-
-function InputField({
-  label,
-  value,
-  onChangeText,
-  keyboardType = 'default',
-}: InputFieldProps) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
-
-  return (
-    <>
-      <ThemedText>{label}</ThemedText>
-      <View
-        style={[
-          styles.inputContainer,
-          {
-            backgroundColor: isDark ? '#1f1f1f' : '#ebebeb',
-            borderColor: isDark ? '#555' : '#999',
-          },
-        ]}
-      >
-        <TextInput
-          style={[
-            styles.input,
-            {
-              color: isDark ? '#fff' : '#111',
-              backgroundColor: 'transparent',
-            },
-          ]}
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType={keyboardType}
-          placeholderTextColor={isDark ? '#aaa' : '#666'}
-        />
-      </View>
-    </>
-  );
-}
-
-
 export default function TabTwoScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
   const { user } = useAuth();
   const { addAndSubmit } = useSubmissions();
   const { workflow } = useWorkflow();
@@ -392,41 +341,16 @@ export default function TabTwoScreen() {
   };
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <AntDesign
-        size={200}
-        color="white"
-        name="product"
-        style={styles.headerImage}
-        />
-      }
+    <FormScreen
+      title="PRODUCCIÓN"
+      subtitle="de leche"
+      company={selectedCompany?.label}
     >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}
-        >
-          Producción {selectedCompany ? `- ${selectedCompany.label}` : '- Sin empresa'}
-        </ThemedText>
-      </ThemedView>
-
-      <ThemedText>Formulario de Alta de Producción.</ThemedText>
-
-      <ThemedView style={styles.formContainer}>
-        <ThemedText type="subtitle">Campos principales</ThemedText>
-
-        <InputField
-          label="Fecha"
-          value={fecha}
-          onChangeText={setFecha}
-        />
+      <FormSection title="Campos principales">
+        <Field label="Fecha" value={fecha} onChangeText={setFecha} />
 
         <SearchableSelect
-          label="HaciendaCategoriaCodigo"
+          label="Categoría de hacienda"
           selectedValue={haciendaCategoriaCodigo}
           options={haciendaCategoriaOptions}
           onValueChange={setHaciendaCategoriaCodigo}
@@ -435,7 +359,7 @@ export default function TabTwoScreen() {
         />
 
         <SearchableSelect
-          label="LoteCodigo"
+          label="Lote"
           selectedValue={loteCodigo}
           options={loteOptions}
           onValueChange={setLoteCodigo}
@@ -443,29 +367,33 @@ export default function TabTwoScreen() {
           loading={loadingLotes}
         />
 
-        <InputField
+        <Field
           label="Cabezas"
           value={cabezas}
           onChangeText={setCabezas}
-          keyboardType="numeric"
+          numeric
         />
 
-        <InputField
-          label="Descripcion (opcional)"
+        <Field
+          label="Descripción"
           value={descripcion}
           onChangeText={setDescripcion}
+          optional
         />
+      </FormSection>
 
-        <ThemedText type="subtitle">Movimiento Hacienda Producción Leche</ThemedText>
-
+      <FormSection title="Movimiento de producción">
         {movimientos.map((item, index) => (
-          <ThemedView key={index} style={styles.miniForm}>
-            <ThemedText style={styles.itemTitle}>
-              Item {index + 1}
-            </ThemedText>
-
+          <ItemCard
+            key={index}
+            index={index}
+            total={movimientos.length}
+            onRemove={
+              movimientos.length > 1 ? () => removeMovimiento(index) : undefined
+            }
+          >
             <SearchableSelect
-              label="ProductoCodigo"
+              label="Producto"
               selectedValue={item.ProductoCodigo}
               options={productoLecheOptions}
               onValueChange={(value) =>
@@ -476,7 +404,7 @@ export default function TabTwoScreen() {
             />
 
             <SearchableSelect
-              label="LoteCodigo"
+              label="Depósito"
               selectedValue={item.LoteCodigo}
               options={depositoOptions}
               onValueChange={(value) =>
@@ -486,262 +414,146 @@ export default function TabTwoScreen() {
               loading={loadingDepositos}
             />
 
-            <InputField
+            <Field
               label="Dosis"
               value={item.Dosis}
-              onChangeText={(text) =>
-                updateMovimientoField(index, 'Dosis', text)
-              }
-              keyboardType="numeric"
+              onChangeText={(text) => updateMovimientoField(index, 'Dosis', text)}
+              numeric
             />
 
-            <InputField
-              label="Grasa (opcional)"
+            <Field
+              label="Grasa"
               value={item.Grasa}
-              onChangeText={(text) =>
-                updateMovimientoField(index, 'Grasa', text)
-              }
-              keyboardType="numeric"
+              onChangeText={(text) => updateMovimientoField(index, 'Grasa', text)}
+              numeric
+              optional
             />
 
-            <InputField
-              label="UFC (opcional)"
+            <Field
+              label="UFC"
               value={item.UFC}
-              onChangeText={(text) =>
-                updateMovimientoField(index, 'UFC', text)
-              }
-              keyboardType="numeric"
+              onChangeText={(text) => updateMovimientoField(index, 'UFC', text)}
+              numeric
+              optional
             />
 
-            <InputField
-              label="Acidez (opcional)"
+            <Field
+              label="Acidez"
               value={item.Acidez}
-              onChangeText={(text) =>
-                updateMovimientoField(index, 'Acidez', text)
-              }
-              keyboardType="numeric"
+              onChangeText={(text) => updateMovimientoField(index, 'Acidez', text)}
+              numeric
+              optional
             />
 
-            <InputField
-              label="Proteinas (opcional)"
+            <Field
+              label="Proteínas"
               value={item.Proteinas}
-              onChangeText={(text) =>
-                updateMovimientoField(index, 'Proteinas', text)
-              }
-              keyboardType="numeric"
+              onChangeText={(text) => updateMovimientoField(index, 'Proteinas', text)}
+              numeric
+              optional
             />
 
-            <InputField
-              label="Temperatura (opcional)"
+            <Field
+              label="Temperatura"
               value={item.Temperatura}
-              onChangeText={(text) =>
-                updateMovimientoField(index, 'Temperatura', text)
-              }
-              keyboardType="numeric"
+              onChangeText={(text) => updateMovimientoField(index, 'Temperatura', text)}
+              numeric
+              optional
             />
 
-            <InputField
-              label="CelSomaticas (opcional)"
+            <Field
+              label="Células somáticas"
               value={item.CelSomaticas}
               onChangeText={(text) =>
                 updateMovimientoField(index, 'CelSomaticas', text)
               }
-              keyboardType="numeric"
+              numeric
+              optional
             />
 
             {showOptionalFields && (
               <>
-                <InputField
-                  label="PartidaCodigo"
+                <Field
+                  label="Partida"
                   value={item.PartidaCodigo}
                   onChangeText={(text) =>
                     updateMovimientoField(index, 'PartidaCodigo', text)
                   }
+                  optional
                 />
 
-                <InputField
-                  label="OrganizacionStockCodigo"
+                <Field
+                  label="Organización de stock"
                   value={item.OrganizacionStockCodigo}
                   onChangeText={(text) =>
                     updateMovimientoField(index, 'OrganizacionStockCodigo', text)
                   }
+                  optional
                 />
               </>
             )}
-
-            <View style={styles.itemButtons}>
-              <Button title="Agregar item" onPress={addMovimiento} />
-              {movimientos.length > 1 && (
-                <Button
-                  title="Quitar item"
-                  onPress={() => removeMovimiento(index)}
-                  color="#b00020"
-                />
-              )}
-            </View>
-          </ThemedView>
+          </ItemCard>
         ))}
 
-        {showOptionalFields && (
-          <>
-            <ThemedText type="subtitle">Campos opcionales generales</ThemedText>
+        <SecondaryButton title="Agregar ítem" onPress={addMovimiento} />
+      </FormSection>
 
-            <InputField
-              label="IdentificacionExterna"
-              value={identificacionExterna}
-              onChangeText={setIdentificacionExterna}
-            />
+      {showOptionalFields && (
+        <FormSection title="Campos opcionales generales">
+          <Field
+            label="Identificación externa"
+            value={identificacionExterna}
+            onChangeText={setIdentificacionExterna}
+            optional
+          />
 
-            <InputField
-              label="NumeroDocumento"
-              value={numeroDocumento}
-              onChangeText={setNumeroDocumento}
-            />
+          <Field
+            label="Número de documento"
+            value={numeroDocumento}
+            onChangeText={setNumeroDocumento}
+            optional
+          />
 
-            <InputField
-              label="CampanaCodigo"
-              value={campanaCodigo}
-              onChangeText={setCampanaCodigo}
-            />
+          <Field
+            label="Campaña"
+            value={campanaCodigo}
+            onChangeText={setCampanaCodigo}
+            optional
+          />
 
-            <InputField
-              label="Tropa"
-              value={tropa}
-              onChangeText={setTropa}
-            />
-          </>
-        )}
+          <Field label="Tropa" value={tropa} onChangeText={setTropa} optional />
+        </FormSection>
+      )}
 
+      <View style={styles.footer}>
         <Button
-          title={loading ? 'Enviando...' : 'Enviar'}
+          title="Enviar"
+          variant="accent"
           onPress={handleSendPress}
-          disabled={loading}
+          loading={loading}
         />
-
-        {loading && <ActivityIndicator />}
 
         {error && (
-          <View style={styles.errorBox}>
-            <ThemedText style={styles.errorTitle}>{error.title}</ThemedText>
-            {error.detail && (
-              <ThemedText style={styles.errorDetail}>{error.detail}</ThemedText>
-            )}
-          </View>
+          <StatusBox variant="error" title={error.title} detail={error.detail} />
         )}
-        <SendConfirmationModal
-          visible={confirmVisible}
-          title="¿Estás seguro?"
-          payload={buildPayload()}
-          onCancel={() => setConfirmVisible(false)}
-          onConfirm={async () => {
-            setConfirmVisible(false);
-            await submitProduccion();
-          }}
-          confirmText="Confirmar"
-          cancelText="Cancelar"
-        />
-        
+      </View>
 
-        
-      </ThemedView>
-    </ParallaxScrollView>
+      <SendConfirmationModal
+        visible={confirmVisible}
+        title="¿Estás seguro?"
+        payload={buildPayload()}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={async () => {
+          setConfirmVisible(false);
+          await submitProduccion();
+        }}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+      />
+    </FormScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: { position: 'absolute' },
-  titleContainer: { flexDirection: 'row', gap: 8 },
-
-  formContainer: {
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(83, 83, 83, 0.07)',
-  },
-
-  miniForm: {
-    gap: 10,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  itemButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginTop: 8,
-  },
-
-  inputContainer: {
-    borderWidth: 0,
-    borderRadius: 10,
-    minHeight: 56,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-
-  input: {
-    width: '100%',
-    minHeight: 56,
-    fontSize: 16,
-    paddingVertical: 0,
-  },
-
-  pickerContainer: {
-    borderWidth: 0,
-    borderRadius: 10,
-    minHeight: 56,
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-
-
-  successBox: {
-    backgroundColor: 'rgba(16,185,129,0.08)',
-    borderColor: 'rgba(16,185,129,0.3)',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-  },
-  successText: {
-    color: '#059669',
-    fontSize: 14,
-    fontWeight: '600' as const,
-  },
-  queueBox: {
-    backgroundColor: 'rgba(234,179,8,0.08)',
-    borderColor: 'rgba(234,179,8,0.35)',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-  },
-  queueText: {
-    color: '#b45309',
-    fontSize: 14,
-  },
-  errorBox: {
-    backgroundColor: '#dc2626',
-    borderColor: '#991b1b',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    gap: 4,
-  },
-  errorTitle: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700' as const,
-  },
-  errorDetail: {
-    color: '#fee2e2',
-    fontSize: 13,
-  },
-
+  footer: { gap: Spacing.md },
 });

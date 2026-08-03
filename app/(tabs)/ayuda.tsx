@@ -1,11 +1,18 @@
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-
-import { ThemedText } from '@/components/themed-text';
-import { Colors } from '@/constants/theme';
-import { useAuth } from '@/contexts/AuthContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { PairedHeading, Panel, Screen } from '@/components/brand';
+import {
+  Effects,
+  FontFamily,
+  Palette,
+  Radius,
+  Semantic,
+  Spacing,
+  Type,
+} from '@/constants/theme';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Line prefixes:
 //   '• '  → bullet item (consecutive bullets are grouped into a block)
@@ -218,10 +225,13 @@ const ADMIN_SECTIONS: GuideSection[] = [
   },
 ];
 
-const USER_ACCENT = '#6366f1';
-const ADMIN_ACCENT = '#f59e0b';
+// El sistema define un solo color saturado —el rojo, reservado a titulares e
+// isotipo—, así que las dos guías se distinguen con el navy institucional y el
+// ocre semántico en vez del índigo y el ámbar del template.
+const USER_ACCENT = Palette.navy;
+const ADMIN_ACCENT = Semantic.pending;
 
-function renderLines(lines: string[], accent: string, isDark: boolean): React.ReactNode[] {
+function renderLines(lines: string[], accent: string): React.ReactNode[] {
   const result: React.ReactNode[] = [];
   let bulletBuffer: string[] = [];
 
@@ -235,9 +245,7 @@ function renderLines(lines: string[], accent: string, isDark: boolean): React.Re
         {bulletBuffer.map((b, i) => (
           <View key={i} style={s.bulletRow}>
             <View style={[s.dot, { backgroundColor: accent }]} />
-            <ThemedText style={[s.bulletText, { color: isDark ? '#d1d5db' : '#374151' }]}>
-              {b}
-            </ThemedText>
+            <Text style={s.bulletText}>{b}</Text>
           </View>
         ))}
       </View>
@@ -259,10 +267,7 @@ function renderLines(lines: string[], accent: string, isDark: boolean): React.Re
           key={i}
           style={[
             s.highlight,
-            {
-              backgroundColor: isDark ? `${accent}18` : `${accent}12`,
-              borderColor: isDark ? `${accent}40` : `${accent}30`,
-            },
+            { backgroundColor: `${accent}12`, borderColor: `${accent}30` },
           ]}
         >
           <MaterialCommunityIcons
@@ -271,9 +276,7 @@ function renderLines(lines: string[], accent: string, isDark: boolean): React.Re
             color={accent}
             style={{ marginTop: 1 }}
           />
-          <ThemedText style={[s.highlightText, { color: isDark ? '#e5e7eb' : '#374151' }]}>
-            {line.slice(2)}
-          </ThemedText>
+          <Text style={s.highlightText}>{line.slice(2)}</Text>
         </View>
       );
       return;
@@ -281,20 +284,17 @@ function renderLines(lines: string[], accent: string, isDark: boolean): React.Re
 
     if (line.endsWith(':')) {
       result.push(
-        <ThemedText
-          key={i}
-          style={[s.subLabel, { color: accent }]}
-        >
+        <Text key={i} style={[s.subLabel, { color: accent }]}>
           {line}
-        </ThemedText>
+        </Text>
       );
       return;
     }
 
     result.push(
-      <ThemedText key={i} style={[s.paragraph, { color: isDark ? '#d1d5db' : '#374151' }]}>
+      <Text key={i} style={s.paragraph}>
         {line}
-      </ThemedText>
+      </Text>
     );
   });
 
@@ -305,51 +305,38 @@ function renderLines(lines: string[], accent: string, isDark: boolean): React.Re
 function AccordionSection({
   section,
   accent,
-  isDark,
 }: {
   section: GuideSection;
   accent: string;
-  isDark: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <View
-      style={[
-        s.card,
-        {
-          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
-          borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb',
-        },
-      ]}
-    >
+    <View style={s.card}>
       <Pressable
         onPress={() => setOpen((v) => !v)}
-        style={({ pressed }) => [s.cardHeader, { opacity: pressed ? 0.75 : 1 }]}
+        style={({ pressed }) => [s.cardHeader, pressed && s.pressed]}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
       >
         <View style={[s.iconBox, { backgroundColor: `${accent}18` }]}>
-          <MaterialCommunityIcons name={section.icon as any} size={20} color={accent} />
+          <MaterialCommunityIcons
+            name={section.icon as any}
+            size={20}
+            color={accent}
+          />
         </View>
-        <ThemedText style={s.cardTitle}>{section.title}</ThemedText>
+        <Text style={s.cardTitle}>{section.title}</Text>
         <MaterialCommunityIcons
           name={open ? 'chevron-up' : 'chevron-down'}
           size={18}
-          color={isDark ? '#6b7280' : '#9ca3af'}
+          color={Palette.steelDeep}
         />
       </Pressable>
 
       {open && (
-        <View
-          style={[
-            s.cardBody,
-            {
-              borderTopWidth: 1,
-              borderTopColor: isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6',
-              backgroundColor: isDark ? 'rgba(0,0,0,0.15)' : `${accent}05`,
-            },
-          ]}
-        >
-          {renderLines(section.lines, accent, isDark)}
+        <View style={[s.cardBody, { backgroundColor: `${accent}05` }]}>
+          {renderLines(section.lines, accent)}
         </View>
       )}
     </View>
@@ -357,8 +344,6 @@ function AccordionSection({
 }
 
 export default function AyudaScreen() {
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [tab, setTab] = useState<'usuario' | 'admin'>('usuario');
@@ -367,85 +352,80 @@ export default function AyudaScreen() {
   const accent = tab === 'usuario' ? USER_ACCENT : ADMIN_ACCENT;
 
   return (
-    <ScrollView
-      style={{ backgroundColor: Colors[colorScheme].background }}
-      contentContainerStyle={s.container}
-      showsVerticalScrollIndicator={false}
-    >
-      <ThemedText style={s.pageTitle}>Guía de uso</ThemedText>
-      <ThemedText style={s.pageSubtitle}>
-        {tab === 'usuario'
-          ? 'Instrucciones para el uso diario de la app.'
-          : 'Gestión de dominios, cuentas y configuraciones.'}
-      </ThemedText>
+    <Screen>
+      <ScrollView
+        contentContainerStyle={s.container}
+        showsVerticalScrollIndicator={false}
+      >
+        <Panel style={s.hero}>
+          <PairedHeading line1="GUÍA" line2="de uso" size="sm" />
+          <Text style={s.pageSubtitle}>
+            {tab === 'usuario'
+              ? 'Instrucciones para el uso diario de la app.'
+              : 'Gestión de dominios, cuentas y configuraciones.'}
+          </Text>
+        </Panel>
 
-      {isAdmin && (
-        <View
-          style={[
-            s.segmented,
-            { backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6' },
-          ]}
-        >
-          {(['usuario', 'admin'] as const).map((key) => {
-            const active = tab === key;
-            const ac = key === 'usuario' ? USER_ACCENT : ADMIN_ACCENT;
-            return (
-              <Pressable
-                key={key}
-                onPress={() => setTab(key)}
-                style={[
-                  s.segment,
-                  active && {
-                    backgroundColor: isDark ? '#374151' : '#fff',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: 0.08,
-                    shadowRadius: 3,
-                    elevation: 2,
-                  },
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={key === 'usuario' ? 'account-outline' : 'shield-account-outline'}
-                  size={16}
-                  color={active ? ac : isDark ? '#9ca3af' : '#6b7280'}
-                />
-                <ThemedText
-                  style={[
-                    s.segmentText,
-                    active && { color: ac, opacity: 1, fontWeight: '700' as const },
-                  ]}
+        {isAdmin && (
+          <View style={s.segmented}>
+            {(['usuario', 'admin'] as const).map((key) => {
+              const active = tab === key;
+              const ac = key === 'usuario' ? USER_ACCENT : ADMIN_ACCENT;
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => setTab(key)}
+                  style={[s.segment, active && s.segmentActive]}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
                 >
-                  {key === 'usuario' ? 'Usuario' : 'Admin'}
-                </ThemedText>
-              </Pressable>
-            );
-          })}
-        </View>
-      )}
+                  <MaterialCommunityIcons
+                    name={key === 'usuario' ? 'account-outline' : 'shield-account-outline'}
+                    size={16}
+                    color={active ? ac : Palette.steelText}
+                  />
+                  <Text
+                    style={[s.segmentText, active && { color: ac, fontFamily: FontFamily.bold }]}
+                  >
+                    {key === 'usuario' ? 'Usuario' : 'Admin'}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
 
-      {sections.map((section) => (
-        <AccordionSection
-          key={section.title}
-          section={section}
-          accent={accent}
-          isDark={isDark}
-        />
-      ))}
-    </ScrollView>
+        <View style={s.list}>
+          {sections.map((section) => (
+            <AccordionSection
+              key={section.title}
+              section={section}
+              accent={accent}
+            />
+          ))}
+        </View>
+      </ScrollView>
+    </Screen>
   );
 }
 
 const s = StyleSheet.create({
-  container: { padding: 16, gap: 10, paddingBottom: 48 },
-  pageTitle: { fontSize: 22, fontWeight: '700' as const, marginBottom: 2 },
-  pageSubtitle: { fontSize: 13, opacity: 0.5, marginBottom: 4 },
+  container: {
+    padding: Spacing.lg,
+    paddingBottom: 48,
+    gap: Spacing.lg,
+  },
+  hero: { gap: Spacing.sm },
+  pageSubtitle: {
+    ...Type.label,
+    color: Palette.steelText,
+  },
 
   segmented: {
     flexDirection: 'row',
-    borderRadius: 12,
+    backgroundColor: 'rgba(10, 47, 67, 0.06)',
+    borderRadius: Radius.field,
     padding: 4,
-    marginBottom: 6,
   },
   segment: {
     flex: 1,
@@ -456,50 +436,64 @@ const s = StyleSheet.create({
     paddingVertical: 9,
     borderRadius: 9,
   },
+  segmentActive: {
+    backgroundColor: Palette.surfaceHigh,
+    borderWidth: 1,
+    borderColor: Effects.hairline,
+    ...Effects.panelShadow,
+  },
   segmentText: {
-    fontSize: 14,
-    fontWeight: '500' as const,
-    opacity: 0.55,
+    ...Type.label,
+    fontFamily: FontFamily.medium,
+    color: Palette.steelText,
   },
 
+  list: { gap: Spacing.md },
   card: {
-    borderRadius: 14,
-    borderWidth: 1,
+    backgroundColor: Palette.surfaceHigh,
+    borderRadius: Radius.card,
+    borderWidth: 1.5,
+    borderColor: Effects.hairline,
     overflow: 'hidden',
+    ...Effects.panelShadow,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    gap: 12,
+    padding: Spacing.md,
+    gap: Spacing.md,
   },
+  pressed: { opacity: 0.75 },
   iconBox: {
     width: 38,
     height: 38,
-    borderRadius: 10,
+    borderRadius: Radius.field,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cardTitle: {
     flex: 1,
-    fontSize: 15,
-    fontWeight: '600' as const,
+    ...Type.body,
+    fontFamily: FontFamily.semibold,
+    color: Palette.navy,
   },
   cardBody: {
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 16,
-    gap: 10,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
+    gap: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Effects.hairline,
   },
 
   paragraph: {
-    fontSize: 14,
-    lineHeight: 22,
+    ...Type.body,
+    lineHeight: 23,
+    color: Palette.ink,
   },
-
   subLabel: {
-    fontSize: 12,
-    fontWeight: '700' as const,
+    ...Type.caption,
+    fontFamily: FontFamily.bold,
     letterSpacing: 0.4,
     marginTop: 2,
     marginBottom: -2,
@@ -508,9 +502,9 @@ const s = StyleSheet.create({
   bulletBlock: {
     borderLeftWidth: 3,
     borderRadius: 2,
-    paddingLeft: 12,
+    paddingLeft: Spacing.md,
     paddingVertical: 6,
-    gap: 8,
+    gap: Spacing.sm,
     marginVertical: 2,
   },
   bulletRow: {
@@ -527,23 +521,25 @@ const s = StyleSheet.create({
   },
   bulletText: {
     flex: 1,
-    fontSize: 13,
+    ...Type.label,
     lineHeight: 21,
+    color: Palette.ink,
   },
 
   highlight: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    paddingHorizontal: 12,
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     paddingVertical: 10,
-    borderRadius: 10,
+    borderRadius: Radius.field,
     borderWidth: 1,
     marginVertical: 2,
   },
   highlightText: {
     flex: 1,
-    fontSize: 13,
+    ...Type.label,
     lineHeight: 20,
+    color: Palette.ink,
   },
 });

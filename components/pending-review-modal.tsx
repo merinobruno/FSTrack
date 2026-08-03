@@ -1,17 +1,24 @@
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 
+import { Button, SecondaryButton } from '@/components/brand';
 import { SearchableSelect, SelectOption } from '@/components/searchable-select';
-import { ThemedText } from '@/components/themed-text';
+import {
+  Effects,
+  FontFamily,
+  Palette,
+  Radius,
+  Spacing,
+  Type,
+} from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useSubmissions } from '@/contexts/SubmissionsContext';
@@ -38,13 +45,10 @@ function formatDate(iso: string) {
 }
 
 function ReadRow({ label, value }: { label: string; value: string }) {
-  const isDark = (useColorScheme() ?? 'light') === 'dark';
   return (
     <View style={s.row}>
-      <ThemedText style={s.rowLabel}>{label}</ThemedText>
-      <ThemedText style={[s.rowValue, { color: isDark ? '#d1d5db' : '#374151' }]}>
-        {value || '—'}
-      </ThemedText>
+      <Text style={s.rowLabel}>{label}</Text>
+      <Text style={s.rowValue}>{value || '—'}</Text>
     </View>
   );
 }
@@ -55,8 +59,6 @@ export default function PendingReviewModal({ visible, onClose }: Props) {
   const { user } = useAuth();
   const { companies } = useCompany();
   const { submissions, syncOne } = useSubmissions();
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
 
   const pending = submissions.filter((s) => s.status === 'PENDING');
 
@@ -167,10 +169,8 @@ export default function PendingReviewModal({ visible, onClose }: Props) {
               placeholder="Seleccionar lote..."
             />
             {movs.map((mov, i) => (
-              <View key={i} style={[s.subItem, { borderColor: isDark ? '#374151' : '#e5e7eb' }]}>
-                <ThemedText style={[s.subLabel, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
-                  Movimiento {i + 1}
-                </ThemedText>
+              <View key={i} style={s.subItem}>
+                <Text style={s.subLabel}>Movimiento {i + 1}</Text>
                 <ReadRow label="Litros (Dosis)" value={String(mov.Dosis ?? '')} />
                 <SearchableSelect
                   label="Depósito (LoteCodigo)"
@@ -191,10 +191,8 @@ export default function PendingReviewModal({ visible, onClose }: Props) {
           <>
             <ReadRow label="Fecha" value={p.Fecha ?? ''} />
             {items.map((item, i) => (
-              <View key={i} style={[s.subItem, { borderColor: isDark ? '#374151' : '#e5e7eb' }]}>
-                <ThemedText style={[s.subLabel, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
-                  Item {i + 1}
-                </ThemedText>
+              <View key={i} style={s.subItem}>
+                <Text style={s.subLabel}>Ítem {i + 1}</Text>
                 <ReadRow label="Cab" value={String(item.Cab ?? '')} />
                 <SearchableSelect
                   label="LoteDestino"
@@ -222,10 +220,8 @@ export default function PendingReviewModal({ visible, onClose }: Props) {
           <>
             <ReadRow label="Fecha" value={p.Fecha ?? ''} />
             {items.map((item, i) => (
-              <View key={i} style={[s.subItem, { borderColor: isDark ? '#374151' : '#e5e7eb' }]}>
-                <ThemedText style={[s.subLabel, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
-                  Item {i + 1}
-                </ThemedText>
+              <View key={i} style={s.subItem}>
+                <Text style={s.subLabel}>Ítem {i + 1}</Text>
                 <ReadRow label="Cab" value={String(item.Cab ?? '')} />
                 <SearchableSelect
                   label="LoteOrigen"
@@ -253,10 +249,8 @@ export default function PendingReviewModal({ visible, onClose }: Props) {
           <>
             <ReadRow label="Fecha" value={p.Fecha ?? ''} />
             {items.map((item, i) => (
-              <View key={i} style={[s.subItem, { borderColor: isDark ? '#374151' : '#e5e7eb' }]}>
-                <ThemedText style={[s.subLabel, { color: isDark ? '#9ca3af' : '#6b7280' }]}>
-                  Item {i + 1}
-                </ThemedText>
+              <View key={i} style={s.subItem}>
+                <Text style={s.subLabel}>Ítem {i + 1}</Text>
                 <ReadRow label="Cab" value={String(item.Cab ?? '')} />
                 <SearchableSelect
                   label="LoteOrigen"
@@ -304,46 +298,34 @@ export default function PendingReviewModal({ visible, onClose }: Props) {
     }
   };
 
-  /* ── theme ── */
-
-  const bg       = isDark ? '#111827' : '#f9fafb';
-  const headerBg = isDark ? '#1f2937' : '#ffffff';
-  const cardBg   = isDark ? '#1f2937' : '#ffffff';
-  const border   = isDark ? '#374151' : '#e5e7eb';
-  const subtle   = isDark ? '#9ca3af' : '#6b7280';
-
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={[s.container, { backgroundColor: bg }]}>
-
-        {/* Header */}
-        <View style={[s.header, { backgroundColor: headerBg, borderBottomColor: border }]}>
-          <ThemedText style={s.title}>
-            Revisar pendientes ({pending.length})
-          </ThemedText>
+      <View style={s.container}>
+        <View style={s.header}>
+          <Text style={s.title}>Revisar pendientes ({pending.length})</Text>
           <Pressable onPress={onClose} hitSlop={12}>
-            <MaterialCommunityIcons name="close" size={22} color={subtle} />
+            <MaterialCommunityIcons name="close" size={22} color={Palette.navy} />
           </Pressable>
         </View>
 
         {pending.length === 0 ? (
           <View style={s.emptyContainer}>
-            <MaterialCommunityIcons name="check-circle-outline" size={48} color={subtle} />
-            <ThemedText style={[s.emptyText, { color: subtle }]}>
-              No hay formularios pendientes.
-            </ThemedText>
+            <MaterialCommunityIcons
+              name="check-circle-outline"
+              size={48}
+              color={Palette.steel}
+            />
+            <Text style={s.emptyText}>No hay formularios pendientes.</Text>
           </View>
         ) : (
           <>
             <ScrollView contentContainerStyle={s.scroll}>
               {pending.map((sub) => {
                 const isExpanded = expanded[sub.id] ?? true;
-                const isSending  = sendingIds.has(sub.id);
+                const isSending = sendingIds.has(sub.id);
 
                 return (
-                  <View key={sub.id} style={[s.card, { backgroundColor: cardBg, borderColor: border }]}>
-
-                    {/* Card header row */}
+                  <View key={sub.id} style={s.card}>
                     <Pressable
                       style={s.cardHeader}
                       onPress={() =>
@@ -351,63 +333,46 @@ export default function PendingReviewModal({ visible, onClose }: Props) {
                       }
                     >
                       <View style={s.cardHeaderLeft}>
-                        <ThemedText style={s.cardType}>
+                        <Text style={s.cardType}>
                           {FORM_LABELS[sub.form_type] ?? sub.form_type}
-                        </ThemedText>
+                        </Text>
                         {sub.company_label && (
-                          <ThemedText style={[s.cardMeta, { color: subtle }]}>
-                            {sub.company_label}
-                          </ThemedText>
+                          <Text style={s.cardMeta}>{sub.company_label}</Text>
                         )}
-                        <ThemedText style={[s.cardDate, { color: subtle }]}>
-                          {formatDate(sub.created_at)}
-                        </ThemedText>
+                        <Text style={s.cardDate}>{formatDate(sub.created_at)}</Text>
                       </View>
+
                       <View style={s.cardHeaderRight}>
-                        <Pressable
-                          style={[s.sendBtn, (isSending || sendingAll) && s.sendBtnDisabled]}
+                        <SecondaryButton
+                          title="Enviar"
                           onPress={() => sendOne(sub)}
                           disabled={isSending || sendingAll}
-                          hitSlop={8}
-                        >
-                          {isSending
-                            ? <ActivityIndicator size="small" color="#6366f1" />
-                            : <ThemedText style={s.sendBtnText}>Enviar</ThemedText>
-                          }
-                        </Pressable>
+                          loading={isSending}
+                          style={s.sendBtn}
+                        />
                         <MaterialCommunityIcons
                           name={isExpanded ? 'chevron-up' : 'chevron-down'}
                           size={20}
-                          color={subtle}
+                          color={Palette.steelDeep}
                         />
                       </View>
                     </Pressable>
 
-                    {/* Card body */}
                     {isExpanded && (
-                      <View style={[s.cardBody, { borderTopColor: border }]}>
-                        {renderFields(sub)}
-                      </View>
+                      <View style={s.cardBody}>{renderFields(sub)}</View>
                     )}
                   </View>
                 );
               })}
             </ScrollView>
 
-            {/* Send all */}
-            <View style={[s.footer, { backgroundColor: headerBg, borderTopColor: border }]}>
-              <Pressable
-                style={[s.sendAllBtn, (sendingAll || sendingIds.size > 0) && s.sendBtnDisabled]}
+            <View style={s.footer}>
+              <Button
+                title={`Enviar todos (${pending.length})`}
                 onPress={sendAll}
                 disabled={sendingAll || sendingIds.size > 0}
-              >
-                {sendingAll
-                  ? <ActivityIndicator size="small" color="#fff" />
-                  : <ThemedText style={s.sendAllText}>
-                      Enviar todos ({pending.length})
-                    </ThemedText>
-                }
-              </Pressable>
+                loading={sendingAll}
+              />
             </View>
           </>
         )}
@@ -417,79 +382,120 @@ export default function PendingReviewModal({ visible, onClose }: Props) {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: Palette.surface },
 
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 52,
+    paddingBottom: Spacing.md,
+    backgroundColor: Palette.surfaceHigh,
     borderBottomWidth: 1,
+    borderBottomColor: Effects.hairline,
   },
-  title: { fontSize: 18, fontWeight: '700' as const },
+  title: {
+    ...Type.title,
+    fontFamily: FontFamily.bold,
+    color: Palette.navy,
+  },
 
-  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  emptyText: { fontSize: 15 },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+  },
+  emptyText: {
+    ...Type.body,
+    color: Palette.steelText,
+  },
 
-  scroll: { padding: 12, gap: 12, paddingBottom: 24 },
+  scroll: { padding: Spacing.md, gap: Spacing.md, paddingBottom: Spacing.xl },
 
   card: {
-    borderWidth: 1,
-    borderRadius: 14,
+    backgroundColor: Palette.surfaceHigh,
+    borderWidth: 1.5,
+    borderColor: Effects.hairline,
+    borderRadius: Radius.card,
     overflow: 'hidden',
+    ...Effects.panelShadow,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 14,
+    padding: Spacing.md,
+    gap: Spacing.sm,
   },
-  cardHeaderLeft:  { flex: 1, gap: 2 },
-  cardHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  cardType: { fontSize: 15, fontWeight: '600' as const },
-  cardMeta: { fontSize: 12 },
-  cardDate: { fontSize: 11 },
-
-  sendBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(99,102,241,0.4)',
-    backgroundColor: 'rgba(99,102,241,0.08)',
-    minWidth: 64,
+  cardHeaderLeft: { flex: 1, gap: 2 },
+  cardHeaderRight: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.sm,
   },
-  sendBtnDisabled: { opacity: 0.45 },
-  sendBtnText: { fontSize: 13, fontWeight: '600' as const, color: '#6366f1' },
+  cardType: {
+    ...Type.body,
+    fontFamily: FontFamily.semibold,
+    color: Palette.navy,
+  },
+  cardMeta: {
+    ...Type.caption,
+    color: Palette.steelText,
+  },
+  cardDate: {
+    ...Type.micro,
+    color: Palette.steelText,
+  },
+  sendBtn: { minWidth: 92 },
 
-  cardBody: { padding: 14, borderTopWidth: 1, gap: 10 },
+  cardBody: {
+    padding: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Effects.hairline,
+    gap: Spacing.md,
+  },
 
   subItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
     borderWidth: 1,
-    borderRadius: 10,
-    padding: 10,
-    gap: 8,
-    marginTop: 4,
+    borderColor: Effects.edge,
+    borderRadius: Radius.field,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
   },
-  subLabel: { fontSize: 11, fontWeight: '600' as const, textTransform: 'uppercase' },
+  subLabel: {
+    ...Type.micro,
+    fontFamily: FontFamily.bold,
+    color: Palette.steelText,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
 
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 2 },
-  rowLabel: { fontSize: 13, opacity: 0.55 },
-  rowValue: { fontSize: 13, fontWeight: '500' as const },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    gap: Spacing.md,
+    paddingVertical: 2,
+  },
+  rowLabel: {
+    ...Type.label,
+    color: Palette.steelText,
+  },
+  rowValue: {
+    ...Type.label,
+    fontFamily: FontFamily.semibold,
+    color: Palette.ink,
+    flexShrink: 1,
+  },
 
   footer: {
-    padding: 16,
+    padding: Spacing.lg,
+    backgroundColor: Palette.surfaceHigh,
     borderTopWidth: 1,
+    borderTopColor: Effects.hairline,
   },
-  sendAllBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: '#6366f1',
-    minHeight: 50,
-  },
-  sendAllText: { fontSize: 15, fontWeight: '700' as const, color: '#fff' },
 });

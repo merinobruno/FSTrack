@@ -1,20 +1,20 @@
 import { router } from 'expo-router';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Button,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import SendConfirmationModal from '@/components/SendConfirmationModal';
+import {
+  Button,
+  Field,
+  FormScreen,
+  FormSection,
+  ItemCard,
+  ItemGroup,
+  SecondaryButton,
+  StatusBox,
+} from '@/components/brand';
 import { SearchableSelect, SelectOption } from '@/components/searchable-select';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Fonts } from '@/constants/theme';
+import SendConfirmationModal from '@/components/SendConfirmationModal';
+import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useSubmissions } from '@/contexts/SubmissionsContext';
@@ -22,7 +22,6 @@ import { useWorkflow } from '@/contexts/WorkflowContext';
 import { ApiError } from '@/utils/api-error';
 import { getFinnegansToken } from '@/utils/get-finnegans-token';
 import { getCached, setCached } from '@/utils/options-cache';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 /* ================= HELPERS ================= */
 
@@ -94,36 +93,6 @@ const createEmptyItem = (): Item => ({
   Clasificacion: '',
   Tropa: '',
 });
-
-/* ================= COMPONENTS ================= */
-
-function Input({ label, value, onChangeText, numeric = false, editable = true }: any) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
-  return (
-    <>
-      <ThemedText>{label}</ThemedText>
-      <View
-        style={[
-          styles.inputContainer,
-          {
-            backgroundColor: isDark ? '#1f1f1f' : '#ebebeb',
-            opacity: editable ? 1 : 0.55,
-          },
-        ]}
-      >
-        <TextInput
-          style={[styles.input, { color: isDark ? '#fff' : '#111' }]}
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType={numeric ? 'numeric' : 'default'}
-          placeholderTextColor={isDark ? '#aaa' : '#666'}
-          editable={editable}
-        />
-      </View>
-    </>
-  );
-}
 
 /* ================= MAIN ================= */
 
@@ -347,44 +316,31 @@ export default function TrasladosScreen() {
   /* ================= UI ================= */
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <MaterialCommunityIcons
-          name="swap-horizontal"
-          size={200}
-          color="white"
-          style={styles.headerImage}
-        />
-      }
+    <FormScreen
+      title="TRASLADOS"
+      subtitle="y cambios de categoría"
+      company={selectedCompany?.label}
     >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
-          Traslados {selectedCompany ? `- ${selectedCompany.label}` : '- Sin empresa'}
-        </ThemedText>
-      </ThemedView>
+      <FormSection title="Datos principales">
+        <Field label="Fecha" value={fecha} onChangeText={setFecha} />
+        <Field label="Descripción" value={descripcion} onChangeText={setDescripcion} />
+      </FormSection>
 
-      <ThemedText>Formulario de Traslado y Cambio de Categoría.</ThemedText>
-
-      <ThemedView style={styles.formContainer}>
-        <ThemedText type="subtitle">Datos principales</ThemedText>
-
-        <Input label="Fecha" value={fecha} onChangeText={setFecha} />
-        <Input label="Descripcion" value={descripcion} onChangeText={setDescripcion} />
-
-        <ThemedText type="subtitle">Items</ThemedText>
-
+      <FormSection title="Ítems">
         {items.map((item, i) => {
           const kgCab = toNumberOrNull(item.KgCab) ?? 0;
           const cab = toNumberOrNull(item.Cab) ?? 0;
           const kg = kgCab && cab ? (kgCab * cab).toFixed(2) : '';
 
           return (
-            <ThemedView key={i} style={styles.miniForm}>
-              <ThemedText style={styles.itemTitle}>Item {i + 1}</ThemedText>
-
+            <ItemCard
+              key={i}
+              index={i}
+              total={items.length}
+              onRemove={items.length > 1 ? () => removeItem(i) : undefined}
+            >
               <SearchableSelect
-                label="EventoHaciendaID"
+                label="Evento de hacienda"
                 selectedValue={item.EventoHaciendaID}
                 options={eventoOptions}
                 onValueChange={(v) => updateItem(i, 'EventoHaciendaID', v)}
@@ -392,199 +348,134 @@ export default function TrasladosScreen() {
                 loading={loadingEventos}
               />
 
-              <ThemedText style={styles.sectionLabel}>Origen</ThemedText>
+              <ItemGroup label="Origen">
+                <SearchableSelect
+                  label="Lote"
+                  selectedValue={item.LoteOrigen}
+                  options={loteOptions}
+                  onValueChange={(v) => updateItem(i, 'LoteOrigen', v)}
+                  placeholder="Seleccionar lote..."
+                  loading={loadingLotes}
+                />
 
-              <SearchableSelect
-                label="LoteOrigen"
-                selectedValue={item.LoteOrigen}
-                options={loteOptions}
-                onValueChange={(v) => updateItem(i, 'LoteOrigen', v)}
-                placeholder="Seleccionar lote..."
-                loading={loadingLotes}
-              />
+                <SearchableSelect
+                  label="Categoría"
+                  selectedValue={item.CategoriaOrigen}
+                  options={categoriaOptions}
+                  onValueChange={(v) => updateItem(i, 'CategoriaOrigen', v)}
+                  placeholder="Seleccionar categoría..."
+                  loading={loadingCategorias}
+                />
+              </ItemGroup>
 
-              <SearchableSelect
-                label="CategoriaOrigen"
-                selectedValue={item.CategoriaOrigen}
-                options={categoriaOptions}
-                onValueChange={(v) => updateItem(i, 'CategoriaOrigen', v)}
-                placeholder="Seleccionar categoría..."
-                loading={loadingCategorias}
-              />
+              <ItemGroup label="Destino">
+                <SearchableSelect
+                  label="Establecimiento"
+                  selectedValue={item.EstablecimientoDestino}
+                  options={companies}
+                  onValueChange={(v) => updateItem(i, 'EstablecimientoDestino', v)}
+                  placeholder="Seleccionar establecimiento..."
+                />
 
-              <ThemedText style={styles.sectionLabel}>Destino</ThemedText>
+                <SearchableSelect
+                  label="Lote"
+                  selectedValue={item.LoteDestino}
+                  options={loteOptions}
+                  onValueChange={(v) => updateItem(i, 'LoteDestino', v)}
+                  placeholder="Seleccionar lote..."
+                  loading={loadingLotes}
+                />
 
-              <SearchableSelect
-                label="EstablecimientoDestino"
-                selectedValue={item.EstablecimientoDestino}
-                options={companies}
-                onValueChange={(v) => updateItem(i, 'EstablecimientoDestino', v)}
-                placeholder="Seleccionar establecimiento..."
-              />
+                <SearchableSelect
+                  label="Categoría"
+                  selectedValue={item.CategoriaDestino}
+                  options={categoriaOptions}
+                  onValueChange={(v) => updateItem(i, 'CategoriaDestino', v)}
+                  placeholder="Seleccionar categoría..."
+                  loading={loadingCategorias}
+                />
 
-              <SearchableSelect
-                label="LoteDestino"
-                selectedValue={item.LoteDestino}
-                options={loteOptions}
-                onValueChange={(v) => updateItem(i, 'LoteDestino', v)}
-                placeholder="Seleccionar lote..."
-                loading={loadingLotes}
-              />
+                <SearchableSelect
+                  label="Clasificación"
+                  selectedValue={item.Clasificacion}
+                  options={clasificacionOptions}
+                  onValueChange={(v) => updateItem(i, 'Clasificacion', v)}
+                  placeholder="Seleccionar clasificación..."
+                  loading={loadingClasificaciones}
+                />
+              </ItemGroup>
 
-              <SearchableSelect
-                label="CategoriaDestino"
-                selectedValue={item.CategoriaDestino}
-                options={categoriaOptions}
-                onValueChange={(v) => updateItem(i, 'CategoriaDestino', v)}
-                placeholder="Seleccionar categoría..."
-                loading={loadingCategorias}
-              />
+              <ItemGroup label="Movimiento">
+                <Field
+                  label="Kg por cabeza"
+                  value={item.KgCab}
+                  onChangeText={(v: string) => updateItem(i, 'KgCab', v)}
+                  numeric
+                  optional
+                />
 
-              <SearchableSelect
-                label="Clasificacion"
-                selectedValue={item.Clasificacion}
-                options={clasificacionOptions}
-                onValueChange={(v) => updateItem(i, 'Clasificacion', v)}
-                placeholder="Seleccionar clasificación..."
-                loading={loadingClasificaciones}
-              />
+                <Field
+                  label="Cabezas"
+                  value={item.Cab}
+                  onChangeText={(v: string) => updateItem(i, 'Cab', v)}
+                  numeric
+                  optional
+                />
 
-              <ThemedText style={styles.sectionLabel}>Movimiento</ThemedText>
+                <Field
+                  label="Kg totales"
+                  value={kg}
+                  onChangeText={() => {}}
+                  numeric
+                  editable={false}
+                  hint="Se calcula como cabezas × kg por cabeza."
+                />
 
-              <Input
-                label="Kg/Cab (opcional)"
-                value={item.KgCab}
-                onChangeText={(v: string) => updateItem(i, 'KgCab', v)}
-                numeric
-              />
-
-              <Input
-                label="Cab (opcional)"
-                value={item.Cab}
-                onChangeText={(v: string) => updateItem(i, 'Cab', v)}
-                numeric
-              />
-
-              <Input
-                label="Kg (automático) (opcional)"
-                value={kg}
-                onChangeText={() => {}}
-                numeric
-                editable={false}
-              />
-
-              <Input
-                label="Tropa (opcional)"
-                value={item.Tropa}
-                onChangeText={(v: string) => updateItem(i, 'Tropa', v)}
-              />
-
-              <View style={styles.itemButtons}>
-                <Button title="Agregar item" onPress={addItem} />
-                {items.length > 1 && (
-                  <Button title="Quitar item" onPress={() => removeItem(i)} color="#b00020" />
-                )}
-              </View>
-            </ThemedView>
+                <Field
+                  label="Tropa"
+                  value={item.Tropa}
+                  onChangeText={(v: string) => updateItem(i, 'Tropa', v)}
+                  optional
+                />
+              </ItemGroup>
+            </ItemCard>
           );
         })}
 
-        <Button
-          title={loading ? 'Enviando...' : 'Enviar'}
-          onPress={handleSendPress}
-          disabled={loading}
-        />
+        <SecondaryButton title="Agregar ítem" onPress={addItem} />
+      </FormSection>
 
-        {loading && <ActivityIndicator />}
+      <View style={styles.footer}>
+        <Button
+          title="Enviar"
+          variant="accent"
+          onPress={handleSendPress}
+          loading={loading}
+        />
 
         {error && (
-          <View style={styles.errorBox}>
-            <ThemedText style={styles.errorTitle}>{error.title}</ThemedText>
-            {error.detail && (
-              <ThemedText style={styles.errorDetail}>{error.detail}</ThemedText>
-            )}
-          </View>
+          <StatusBox variant="error" title={error.title} detail={error.detail} />
         )}
+      </View>
 
-        <SendConfirmationModal
-          visible={confirmVisible}
-          title="¿Estás seguro?"
-          payload={buildPayload()}
-          onCancel={() => setConfirmVisible(false)}
-          onConfirm={async () => {
-            setConfirmVisible(false);
-            await submitTraslados();
-          }}
-          confirmText="Confirmar"
-          cancelText="Cancelar"
-        />
-      </ThemedView>
-    </ParallaxScrollView>
+      <SendConfirmationModal
+        visible={confirmVisible}
+        title="¿Estás seguro?"
+        payload={buildPayload()}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={async () => {
+          setConfirmVisible(false);
+          await submitTraslados();
+        }}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+      />
+    </FormScreen>
   );
 }
 
 /* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
-  headerImage: { position: 'absolute' },
-  titleContainer: { flexDirection: 'row', gap: 8 },
-  formContainer: {
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(83, 83, 83, 0.07)',
-  },
-  miniForm: {
-    gap: 10,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-  itemTitle: { fontSize: 16, fontWeight: '600' },
-  sectionLabel: { fontSize: 12, opacity: 0.5, marginTop: 4, fontWeight: '600' as const },
-  itemButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginTop: 8,
-  },
-  inputContainer: {
-    borderRadius: 10,
-    minHeight: 56,
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  input: {
-    width: '100%',
-    minHeight: 56,
-    fontSize: 16,
-    paddingVertical: 0,
-  },
-  successBox: {
-    backgroundColor: 'rgba(16,185,129,0.08)',
-    borderColor: 'rgba(16,185,129,0.3)',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-  },
-  successText: { color: '#059669', fontSize: 14, fontWeight: '600' as const },
-  queueBox: {
-    backgroundColor: 'rgba(234,179,8,0.08)',
-    borderColor: 'rgba(234,179,8,0.35)',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-  },
-  queueText: { color: '#b45309', fontSize: 14 },
-  errorBox: {
-    backgroundColor: '#dc2626',
-    borderColor: '#991b1b',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    gap: 4,
-  },
-  errorTitle: { color: '#ffffff', fontSize: 14, fontWeight: '700' as const },
-  errorDetail: { color: '#fee2e2', fontSize: 13 },
+  footer: { gap: Spacing.md },
 });

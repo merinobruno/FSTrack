@@ -1,19 +1,19 @@
 import { router } from 'expo-router';
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Button,
-  StyleSheet,
-  TextInput,
-  View
-} from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+import {
+  Button,
+  Field,
+  FormScreen,
+  FormSection,
+  ItemCard,
+  SecondaryButton,
+  StatusBox,
+} from '@/components/brand';
+import { SearchableSelect } from '@/components/searchable-select';
 import SendConfirmationModal from '@/components/SendConfirmationModal';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Fonts } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useSubmissions } from '@/contexts/SubmissionsContext';
@@ -21,8 +21,7 @@ import { useWorkflow } from '@/contexts/WorkflowContext';
 import { ApiError } from '@/utils/api-error';
 import { getFinnegansToken } from '@/utils/get-finnegans-token';
 import { getCached, setCached } from '@/utils/options-cache';
-import { SearchableSelect } from '@/components/searchable-select';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+
 /* ================= HELPERS ================= */
 
 type SelectOption = {
@@ -123,45 +122,6 @@ const createEmptyItem = (): Item => ({
   EventoHaciendaClasificacionID: '',
   OrganizacionID: '',
 });
-
-/* ================= COMPONENTS ================= */
-
-function Input({ label, value, onChangeText, numeric = false, editable = true }: any) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
-
-  return (
-    <>
-      <ThemedText>{label}</ThemedText>
-      <View
-        style={[
-          styles.inputContainer,
-          {
-            backgroundColor: isDark ? '#1f1f1f' : '#ebebeb',
-            borderColor: isDark ? '#555' : '#999',
-          },
-        ]}
-      >
-        <TextInput
-          style={[
-            styles.input,
-            {
-              color: isDark ? '#fff' : '#111',
-              backgroundColor: 'transparent',
-              opacity: editable ? 1 : 0.6,
-            },
-          ]}
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType={numeric ? 'numeric' : 'default'}
-          placeholderTextColor={isDark ? '#aaa' : '#666'}
-          editable={editable}
-        />
-      </View>
-    </>
-  );
-}
-
 
 /* ================= MAIN ================= */
 
@@ -342,50 +302,26 @@ export default function TabTwoScreen() {
   /* ================= UI ================= */
 
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <MaterialCommunityIcons
-          name="cow-off"
-          size={200}
-          color="white"
-          style={styles.headerImage}
-        />
-      }
+    <FormScreen
+      title="MUERTES"
+      subtitle="Alta de bajas"
+      company={selectedCompany?.label}
     >
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title" style={{ fontFamily: Fonts.rounded }}>
-          Muertes {selectedCompany ? `- ${selectedCompany.label}` : '- Sin empresa'}
-        </ThemedText>
-      </ThemedView>
+      <FormSection title="Datos principales">
+        <Field label="Fecha" value={fecha} onChangeText={setFecha} />
+        <Field label="Descripción" value={descripcion} onChangeText={setDescripcion} />
+      </FormSection>
 
-      <ThemedText>Formulario de Alta de Muertes.</ThemedText>
-
-      <ThemedView style={styles.formContainer}>
-        <ThemedText type="subtitle">Datos principales</ThemedText>
-
-        <Input
-          label="Fecha"
-          value={fecha}
-          onChangeText={setFecha}
-        />
-
-        <Input
-          label="Descripcion"
-          value={descripcion}
-          onChangeText={setDescripcion}
-        />
-
-        <ThemedText type="subtitle">Items</ThemedText>
-
+      <FormSection title="Ítems">
         {items.map((item, i) => (
-          <ThemedView key={i} style={styles.miniForm}>
-            <ThemedText style={styles.itemTitle}>
-              Item {i + 1}
-            </ThemedText>
-
+          <ItemCard
+            key={i}
+            index={i}
+            total={items.length}
+            onRemove={items.length > 1 ? () => removeItem(i) : undefined}
+          >
             <SearchableSelect
-              label="LoteOrigen"
+              label="Lote de origen"
               selectedValue={item.LoteOrigen}
               options={loteOptions}
               onValueChange={(v) => updateItem(i, 'LoteOrigen', v)}
@@ -393,7 +329,7 @@ export default function TabTwoScreen() {
             />
 
             <SearchableSelect
-              label="CodigoCategoriahacienda"
+              label="Categoría de hacienda"
               selectedValue={item.CodigoCategoriahacienda}
               options={categoriaOptions}
               onValueChange={(v) => updateItem(i, 'CodigoCategoriahacienda', v)}
@@ -401,180 +337,87 @@ export default function TabTwoScreen() {
             />
 
             <SearchableSelect
-              label="EventoHaciendaClasificacionID"
+              label="Clasificación"
               selectedValue={item.EventoHaciendaClasificacionID}
               options={CLASIFICACION_OPTIONS}
               onValueChange={(v) => updateItem(i, 'EventoHaciendaClasificacionID', v)}
             />
 
-            <Input
-              label="Cab (opcional)"
+            <Field
+              label="Cabezas"
               value={item.Cab}
               onChangeText={(v: string) => updateItem(i, 'Cab', v)}
               numeric
+              optional
             />
 
-            <Input
-              label="Kg/cab (opcional)"
+            <Field
+              label="Kg por cabeza"
               value={item.KgCab}
               onChangeText={(v: string) => updateItem(i, 'KgCab', v)}
               numeric
+              optional
             />
 
-            <Input
-              label="KgTotales (automático) (opcional)"
+            <Field
+              label="Kg totales"
               value={item.KgTotales}
               onChangeText={() => {}}
               numeric
               editable={false}
+              hint="Se calcula como cabezas × kg por cabeza."
             />
 
-            <Input
-              label="Caravanas (opcional)"
+            <Field
+              label="Caravanas"
               value={item.Caravanas}
               onChangeText={(v: string) => updateItem(i, 'Caravanas', v)}
+              optional
             />
 
-            <Input
-              label="Tropa (opcional)"
+            <Field
+              label="Tropa"
               value={item.Tropa}
               onChangeText={(v: string) => updateItem(i, 'Tropa', v)}
+              optional
             />
-
-            <View style={styles.itemButtons}>
-              <Button title="Agregar item" onPress={addItem} />
-              {items.length > 1 && (
-                <Button
-                  title="Quitar item"
-                  onPress={() => removeItem(i)}
-                  color="#b00020"
-                />
-              )}
-            </View>
-          </ThemedView>
+          </ItemCard>
         ))}
 
-        <Button
-          title={loading ? 'Enviando...' : 'Enviar'}
-          onPress={handleSendPress}
-          disabled={loading}
-        />
+        <SecondaryButton title="Agregar ítem" onPress={addItem} />
+      </FormSection>
 
-        {loading && <ActivityIndicator />}
+      <View style={styles.footer}>
+        <Button
+          title="Enviar"
+          variant="accent"
+          onPress={handleSendPress}
+          loading={loading}
+        />
 
         {error && (
-          <View style={styles.errorBox}>
-            <ThemedText style={styles.errorTitle}>{error.title}</ThemedText>
-            {error.detail && (
-              <ThemedText style={styles.errorDetail}>{error.detail}</ThemedText>
-            )}
-          </View>
+          <StatusBox variant="error" title={error.title} detail={error.detail} />
         )}
-        <SendConfirmationModal
-          visible={confirmVisible}
-          title="¿Estás seguro?"
-          payload={buildPayload()}
-          onCancel={() => setConfirmVisible(false)}
-          onConfirm={async () => {
-            setConfirmVisible(false);
-            await submitMuertes();
-          }}
-          confirmText="Confirmar"
-          cancelText="Cancelar"
-        />
-      </ThemedView>
-    </ParallaxScrollView>
+      </View>
+
+      <SendConfirmationModal
+        visible={confirmVisible}
+        title="¿Estás seguro?"
+        payload={buildPayload()}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={async () => {
+          setConfirmVisible(false);
+          await submitMuertes();
+        }}
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+      />
+    </FormScreen>
   );
 }
 
 /* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
-  headerImage: { position: 'absolute' },
-  titleContainer: { flexDirection: 'row', gap: 8 },
-
-  formContainer: {
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: 'rgba(83, 83, 83, 0.07)',
-  },
-
-  miniForm: {
-    gap: 10,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-  },
-
-  itemTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
-  inputContainer: {
-  borderWidth: 0,
-  borderRadius: 10,
-  minHeight: 56,
-  justifyContent: 'center',
-  paddingHorizontal: 12,
-},
-
-input: {
-  width: '100%',
-  minHeight: 56,
-  fontSize: 16,
-  paddingVertical: 0,
-},
-
-
-  itemButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-    marginTop: 8,
-  },
-
-  successBox: {
-    backgroundColor: 'rgba(16,185,129,0.08)',
-    borderColor: 'rgba(16,185,129,0.3)',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-  },
-  successText: {
-    color: '#059669',
-    fontSize: 14,
-    fontWeight: '600' as const,
-  },
-  queueBox: {
-    backgroundColor: 'rgba(234,179,8,0.08)',
-    borderColor: 'rgba(234,179,8,0.35)',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-  },
-  queueText: {
-    color: '#b45309',
-    fontSize: 14,
-  },
-  errorBox: {
-    backgroundColor: '#dc2626',
-    borderColor: '#991b1b',
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 12,
-    gap: 4,
-  },
-  errorTitle: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700' as const,
-  },
-  errorDetail: {
-    color: '#fee2e2',
-    fontSize: 13,
-  },
-
+  footer: { gap: Spacing.md },
 });

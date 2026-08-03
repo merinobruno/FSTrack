@@ -1,14 +1,15 @@
 import React from 'react';
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { ThemedText } from '@/components/themed-text';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Button, SecondaryButton } from '@/components/brand';
+import {
+  Effects,
+  FontFamily,
+  Palette,
+  Radius,
+  Spacing,
+  Type,
+} from '@/constants/theme';
 
 type Props = {
   visible: boolean;
@@ -42,8 +43,8 @@ const formatValue = (value: any) => {
 function FieldRow({ label, value }: { label: string; value: any }) {
   return (
     <View style={styles.fieldRow}>
-      <ThemedText style={styles.fieldLabel}>{label}</ThemedText>
-      <ThemedText style={styles.fieldValue}>{formatValue(value)}</ThemedText>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <Text style={styles.fieldValue}>{formatValue(value)}</Text>
     </View>
   );
 }
@@ -57,7 +58,7 @@ function SectionCard({
 }) {
   return (
     <View style={styles.sectionCard}>
-      <ThemedText style={styles.sectionTitle}>{title}</ThemedText>
+      <Text style={styles.sectionTitle}>{title}</Text>
       {children}
     </View>
   );
@@ -87,9 +88,7 @@ function RenderPayload({
             >
               {value.map((item, index) => (
                 <View key={index} style={styles.arrayItemCard}>
-                  <ThemedText style={styles.arrayItemTitle}>
-                    Item {index + 1}
-                  </ThemedText>
+                  <Text style={styles.arrayItemTitle}>Ítem {index + 1}</Text>
 
                   {typeof item === 'object' && item !== null ? (
                     <RenderPayload data={item} parentKey={`${key}-${index}`} />
@@ -127,16 +126,13 @@ function RenderPayload({
 
 export default function SendConfirmationModal({
   visible,
-  title = 'Are you sure?',
+  title = '¿Estás seguro?',
   payload,
   onCancel,
   onConfirm,
-  confirmText = 'Send',
-  cancelText = 'Cancel',
+  confirmText = 'Confirmar',
+  cancelText = 'Cancelar',
 }: Props) {
-  const colorScheme = useColorScheme() ?? 'light';
-  const isDark = colorScheme === 'dark';
-
   return (
     <Modal
       visible={visible}
@@ -145,48 +141,34 @@ export default function SendConfirmationModal({
       onRequestClose={onCancel}
     >
       <View style={styles.overlay}>
-        <View
-          style={[
-            styles.modalCard,
-            {
-              backgroundColor: isDark ? '#1c1c1e' : '#fff',
-              borderColor: isDark ? '#3a3a3c' : '#ddd',
-            },
-          ]}
-        >
-          <ThemedText type="subtitle">{title}</ThemedText>
-          <ThemedText>
-            Revisá los datos antes de enviarlos a Finnegans.
-          </ThemedText>
+        <View style={styles.modalCard}>
+          <View style={styles.head}>
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.lead}>
+              Revisá los datos antes de enviarlos a Finnegans.
+            </Text>
+          </View>
 
-          <View
-            style={[
-              styles.previewBox,
-              {
-                backgroundColor: isDark ? '#111' : '#f7f7f7',
-                borderColor: isDark ? '#3a3a3c' : '#ddd',
-              },
-            ]}
-          >
+          <View style={styles.previewBox}>
             <ScrollView>
               <RenderPayload data={payload} />
             </ScrollView>
           </View>
 
           <View style={styles.actions}>
-            <Pressable
-              style={[styles.button, styles.cancelButton]}
+            {/* Cancelar iba en rojo pleno y confirmar en verde: invertía el
+                peso visual sobre la acción destructiva y usaba dos colores
+                fuera de paleta. */}
+            <SecondaryButton
+              title={cancelText}
               onPress={onCancel}
-            >
-              <ThemedText style={styles.buttonText}>{cancelText}</ThemedText>
-            </Pressable>
-
-            <Pressable
-              style={[styles.button, styles.confirmButton]}
+              style={styles.action}
+            />
+            <Button
+              title={confirmText}
               onPress={onConfirm}
-            >
-              <ThemedText style={styles.buttonText}>{confirmText}</ThemedText>
-            </Pressable>
+              style={styles.action}
+            />
           </View>
         </View>
       </View>
@@ -197,82 +179,92 @@ export default function SendConfirmationModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(10, 47, 67, 0.45)',
     justifyContent: 'center',
-    padding: 20,
+    padding: Spacing.lg,
   },
   modalCard: {
-    borderRadius: 16,
-    borderWidth: 1,
-    padding: 16,
-    gap: 12,
-    maxHeight: '80%',
+    backgroundColor: Palette.surfaceHigh,
+    borderRadius: Radius.panel,
+    borderWidth: 1.5,
+    borderColor: Effects.hairline,
+    padding: Spacing.lg,
+    gap: Spacing.md,
+    maxHeight: '85%',
+    ...Effects.panelShadow,
   },
+  head: { gap: Spacing.xs },
+  title: {
+    ...Type.title,
+    fontFamily: FontFamily.bold,
+    color: Palette.navy,
+  },
+  lead: {
+    ...Type.label,
+    color: Palette.steelText,
+  },
+
   previewBox: {
+    backgroundColor: Palette.white,
     borderWidth: 1,
-    borderRadius: 12,
-    padding: 12,
+    borderColor: Effects.edge,
+    borderRadius: Radius.field,
+    padding: Spacing.md,
     minHeight: 220,
-    maxHeight: 350,
+    maxHeight: 340,
   },
+
   fieldRow: {
-    paddingVertical: 8,
+    paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(128,128,128,0.15)',
+    borderBottomColor: Effects.edge,
     gap: 2,
   },
   fieldLabel: {
-    fontSize: 12,
-    opacity: 0.75,
+    ...Type.micro,
+    fontFamily: FontFamily.medium,
+    color: Palette.steelText,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   fieldValue: {
-    fontSize: 14,
-    fontWeight: '500',
+    ...Type.label,
+    fontFamily: FontFamily.semibold,
+    color: Palette.ink,
   },
+
   sectionCard: {
-    marginTop: 10,
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(128,128,128,0.08)',
+    marginTop: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radius.field,
+    backgroundColor: 'rgba(10, 47, 67, 0.04)',
     gap: 6,
   },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    ...Type.label,
+    fontFamily: FontFamily.bold,
+    color: Palette.navy,
   },
   arrayItemCard: {
-    marginTop: 8,
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(128,128,128,0.06)',
-    gap: 4,
+    marginTop: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: Radius.field,
+    backgroundColor: Palette.white,
+    borderWidth: 1,
+    borderColor: Effects.edge,
+    gap: Spacing.xs,
   },
   arrayItemTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 4,
+    ...Type.micro,
+    fontFamily: FontFamily.bold,
+    color: Palette.steelText,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
+
   actions: {
     flexDirection: 'row',
-    gap: 10,
-    justifyContent: 'flex-end',
+    gap: Spacing.md,
   },
-  button: {
-    minHeight: 42,
-    minWidth: 100,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-  },
-  cancelButton: {
-    backgroundColor: '#ff0000',
-  },
-  confirmButton: {
-    backgroundColor: '#4caf50',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
+  action: { flex: 1 },
 });

@@ -1,31 +1,41 @@
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
-import { useThemeColor } from '@/hooks/use-theme-color';
+import { FontFamily, Palette, Type } from '@/constants/theme';
 
 export type ThemedTextProps = TextProps & {
+  /** @deprecated La app es de modo claro únicamente. Usá `color`. */
   lightColor?: string;
+  /** @deprecated La app es de modo claro únicamente. Usá `color`. */
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
+  color?: string;
+  type?:
+    | 'default'
+    | 'title'
+    | 'defaultSemiBold'
+    | 'subtitle'
+    | 'link'
+    | 'label'
+    | 'caption'
+    | 'italic';
 };
 
+/**
+ * Texto de marca. Todo el tipo pasa por Montserrat y por la escala de
+ * `Type`; el color por defecto es la tinta `#202B56`, nunca negro.
+ */
 export function ThemedText({
   style,
   lightColor,
-  darkColor,
+  color,
   type = 'default',
   ...rest
 }: ThemedTextProps) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
-
   return (
     <Text
       style={[
-        { color },
-        type === 'default' ? styles.default : undefined,
-        type === 'title' ? styles.title : undefined,
-        type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
-        type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
+        styles.base,
+        styles[type],
+        { color: color ?? lightColor ?? Palette.ink },
         style,
       ]}
       {...rest}
@@ -34,27 +44,42 @@ export function ThemedText({
 }
 
 const styles = StyleSheet.create({
-  default: {
-    fontSize: 16,
-    lineHeight: 24,
+  base: {
+    fontFamily: FontFamily.regular,
+    color: Palette.ink,
   },
+  default: Type.body,
   defaultSemiBold: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
+    ...Type.body,
+    fontFamily: FontFamily.semibold,
   },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
+    ...Type.display,
+    fontFamily: FontFamily.bold,
+    color: Palette.navy,
   },
   subtitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...Type.section,
+    fontFamily: FontFamily.semibold,
+    color: Palette.navy,
+  },
+  label: {
+    ...Type.label,
+    fontFamily: FontFamily.medium,
+    color: Palette.steelText,
+  },
+  caption: {
+    ...Type.caption,
+    color: Palette.steelText,
+  },
+  italic: {
+    ...Type.body,
+    fontFamily: FontFamily.italic,
   },
   link: {
-    lineHeight: 30,
-    fontSize: 16,
-    color: '#0a7ea4',
+    ...Type.body,
+    fontFamily: FontFamily.medium,
+    color: Palette.navy,
+    textDecorationLine: 'underline',
   },
 });

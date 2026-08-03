@@ -1,18 +1,18 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { HeaderActions } from '@/components/app-header';
+import { Lockup } from '@/components/brand';
+import EnviosDrawer from '@/components/envios-drawer';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import EnviosDrawer from '@/components/envios-drawer';
-import { Colors } from '@/constants/theme';
+import { Effects, FontFamily, Palette } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const { user, loading, signOut } = useAuth();
+  const { user, loading } = useAuth();
   const [enviosOpen, setEnviosOpen] = useState(false);
 
   useEffect(() => {
@@ -23,72 +23,123 @@ export default function TabLayout() {
 
   if (loading || !user) return null;
 
-  const iconColor = Colors[colorScheme ?? 'light'].text;
-
-  const HeaderRight = () => (
-    <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16, gap: 18 }}>
-      <Pressable onPress={() => setEnviosOpen(true)} hitSlop={10}>
-        <MaterialCommunityIcons name="clipboard-list-outline" size={24} color={iconColor} />
-      </Pressable>
-      <Pressable
-        onPress={async () => { await signOut(); router.replace('/login'); }}
-        hitSlop={10}
-      >
-        <IconSymbol size={24} name="rectangle.portrait.and.arrow.right" color={iconColor} />
-      </Pressable>
-    </View>
-  );
+  const HeaderLeft = () => <Lockup size={22} style={styles.headerLeft} />;
 
   return (
     <>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
           headerShown: false,
           tabBarButton: HapticTab,
+          // El navy es el color de superficie del sistema; el rojo se reserva
+          // para el indicador, que es una marca gráfica y no texto chico.
+          tabBarActiveTintColor: Palette.navy,
+          tabBarInactiveTintColor: Palette.steelText,
+          tabBarStyle: styles.tabBar,
+          tabBarLabelStyle: styles.tabLabel,
+          tabBarItemStyle: styles.tabItem,
+          headerStyle: styles.header,
+          headerShadowVisible: false,
+          headerTitle: '',
+          headerLeft: () => <HeaderLeft />,
+          headerRight: () => <HeaderActions onOpenEnvios={() => setEnviosOpen(true)} />,
         }}
       >
         <Tabs.Screen
           name="index"
           options={{
             title: 'Home',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
             headerShown: true,
-            headerRight: () => <HeaderRight />,
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon focused={focused}>
+                <IconSymbol size={26} name="house.fill" color={color} />
+              </TabIcon>
+            ),
           }}
         />
         <Tabs.Screen
           name="pedidos"
           options={{
             title: 'Pedidos',
-            tabBarIcon: ({ color }) => <MaterialCommunityIcons name="shopping-outline" size={24} color={color} />,
-            headerShown: false,
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon focused={focused}>
+                <MaterialCommunityIcons name="shopping-outline" size={24} color={color} />
+              </TabIcon>
+            ),
           }}
         />
         <Tabs.Screen
           name="formularios"
           options={{
             title: 'Formularios',
-            tabBarIcon: ({ color }) => <MaterialCommunityIcons name="clipboard-edit-outline" size={24} color={color} />,
-            headerShown: false,
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon focused={focused}>
+                <MaterialCommunityIcons
+                  name="clipboard-edit-outline"
+                  size={24}
+                  color={color}
+                />
+              </TabIcon>
+            ),
           }}
         />
         <Tabs.Screen
           name="ayuda"
           options={{
             title: 'Ayuda',
-            tabBarIcon: ({ color }) => <MaterialCommunityIcons name="help-circle-outline" size={24} color={color} />,
             headerShown: true,
-            headerRight: () => <HeaderRight />,
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon focused={focused}>
+                <MaterialCommunityIcons name="help-circle-outline" size={24} color={color} />
+              </TabIcon>
+            ),
           }}
         />
-        <Tabs.Screen
-          name="Envios"
-          options={{ href: null }}
-        />
+        <Tabs.Screen name="Envios" options={{ href: null }} />
       </Tabs>
 
       <EnviosDrawer visible={enviosOpen} onClose={() => setEnviosOpen(false)} />
     </>
   );
 }
+
+/** Icono de tab con el indicador rojo de la pestaña activa. */
+function TabIcon({ focused, children }: { focused: boolean; children: React.ReactNode }) {
+  return (
+    <View style={styles.tabIcon}>
+      <View style={[styles.indicator, focused && styles.indicatorOn]} />
+      {children}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: {
+    backgroundColor: Palette.surfaceHigh,
+    borderBottomWidth: 1,
+    borderBottomColor: Effects.hairline,
+  },
+  headerLeft: { marginLeft: 16 },
+  tabBar: {
+    backgroundColor: Palette.surfaceHigh,
+    borderTopWidth: 1,
+    borderTopColor: Effects.hairline,
+    height: 68,
+    paddingTop: 6,
+    paddingBottom: 8,
+  },
+  tabItem: { paddingVertical: 2 },
+  tabLabel: {
+    fontFamily: FontFamily.semibold,
+    fontSize: 11,
+    letterSpacing: 0.2,
+  },
+  tabIcon: { alignItems: 'center', gap: 4 },
+  indicator: {
+    width: 18,
+    height: 3,
+    borderRadius: 999,
+    backgroundColor: 'transparent',
+  },
+  indicatorOn: { backgroundColor: Palette.red },
+});
