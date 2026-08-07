@@ -1,14 +1,14 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Easing, StyleSheet, View } from 'react-native';
 
 import { HeaderActions } from '@/components/app-header';
 import { Lockup } from '@/components/brand';
 import EnviosDrawer from '@/components/envios-drawer';
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Effects, FontFamily, Palette } from '@/constants/theme';
+import { Effects, FontFamily, Motion, Palette } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function TabLayout() {
@@ -31,6 +31,17 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           tabBarButton: HapticTab,
+          // Fundido cruzado en lugar del corte seco por defecto. Las pestañas
+          // son hermanas, no hay jerarquía entre ellas, así que un
+          // desplazamiento lateral daría una dirección que no existe.
+          animation: 'fade',
+          transitionSpec: {
+            animation: 'timing',
+            config: {
+              duration: Motion.tab,
+              easing: Easing.out(Easing.quad),
+            },
+          },
           // El navy es el color de superficie del sistema; el rojo se reserva
           // para el indicador, que es una marca gráfica y no texto chico.
           tabBarActiveTintColor: Palette.navy,

@@ -17,7 +17,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { CompanyProvider } from '@/contexts/CompanyContext';
 import { SubmissionsProvider } from '@/contexts/SubmissionsContext';
 import { WorkflowProvider } from '@/contexts/WorkflowContext';
-import { FontFamily, Palette } from '@/constants/theme';
+import { FontFamily, Motion, Palette } from '@/constants/theme';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -78,6 +78,8 @@ export default function RootLayout() {
                   headerStyle: { backgroundColor: Palette.surfaceHigh },
                   headerTintColor: Palette.navy,
                   headerTitleStyle: { fontFamily: FontFamily.semibold },
+                  animation: 'fade',
+                  animationDuration: Motion.screen,
                 }}
               >
                 <Stack.Screen name="login" options={{ headerShown: false }} />

@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { FontFamily, Palette } from '@/constants/theme';
+import { FontFamily, Motion, Palette } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
 
 /**
@@ -48,8 +48,14 @@ export function HeaderActions({ onOpenEnvios }: { onOpenEnvios: () => void }) {
   );
 }
 
-/** Opciones de `Stack` con la cabecera de marca. */
-export const brandHeaderOptions = {
+/**
+ * Opciones de `Stack` de marca: cabecera, fondo de página y transición.
+ *
+ * La transición es un fundido en lugar del deslizamiento por defecto. El
+ * deslizamiento sugiere jerarquía lateral —ir "más adentro"—, y acá pasar del
+ * índice a un formulario es más un cambio de contexto que un avance.
+ */
+export const brandStackOptions = {
   headerStyle: {
     backgroundColor: Palette.surfaceHigh,
   },
@@ -61,6 +67,8 @@ export const brandHeaderOptions = {
     color: Palette.navy,
   },
   contentStyle: { backgroundColor: Palette.surface },
+  animation: 'fade',
+  animationDuration: Motion.screen,
 } as const;
 
 const styles = StyleSheet.create({

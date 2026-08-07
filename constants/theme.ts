@@ -173,6 +173,22 @@ export const Spacing = {
   xxl: 32,
 } as const;
 
+/**
+ * Movimiento.
+ *
+ * El sistema Fisterra está definido para piezas impresas y no especifica
+ * motion, así que estos valores no salen de él. El criterio: FSTrack es una
+ * app de carga de datos que se usa a campo, donde la transición no debe
+ * hacerse notar. Un fundido corto quita el corte seco entre pantallas sin
+ * agregar espera perceptible.
+ */
+export const Motion = {
+  /** Fundido entre pantallas de un stack. */
+  screen: 200,
+  /** Fundido cruzado entre pestañas. Más corto porque se dispara más seguido. */
+  tab: 160,
+} as const;
+
 export const Effects = {
   /** Filo blanco del panel. */
   hairline: 'rgba(255, 255, 255, 0.85)',

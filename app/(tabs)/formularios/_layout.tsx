@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 import { useState } from 'react';
 
-import { HeaderActions, brandHeaderOptions } from '@/components/app-header';
+import { HeaderActions, brandStackOptions } from '@/components/app-header';
 import EnviosDrawer from '@/components/envios-drawer';
 
 export default function FormulariosLayout() {
@@ -11,7 +11,7 @@ export default function FormulariosLayout() {
     <>
       <Stack
         screenOptions={{
-          ...brandHeaderOptions,
+          ...brandStackOptions,
           headerRight: () => <HeaderActions onOpenEnvios={() => setEnviosOpen(true)} />,
         }}
       >
