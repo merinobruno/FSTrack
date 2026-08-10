@@ -1,7 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Dimensions,
+  Easing,
   Modal,
   Pressable,
   ScrollView,
@@ -14,11 +17,14 @@ import {
 import {
   Effects,
   FontFamily,
+  Motion,
   Palette,
   Radius,
   Spacing,
   Type,
 } from '@/constants/theme';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export type SelectOption = { label: string; value: string };
 
@@ -46,6 +52,51 @@ export function SearchableSelect({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
+  /**
+   * El `Modal` se monta con `animationType="none"` y la entrada se anima a
+   * mano. Con `"slide"` la animación arrastra todo el contenido del modal,
+   * incluido el fondo oscurecedor, así que el velo entraba deslizándose como
+   * un rectángulo en lugar de fundirse. Acá el fondo funde y solo la hoja
+   * sube, que es el mismo patrón que usa `envios-drawer`.
+   */
+  const [mounted, setMounted] = useState(false);
+  const [sheetHeight, setSheetHeight] = useState(SCREEN_HEIGHT * 0.7);
+  const progress = useRef(new Animated.Value(0)).current;
+  const hasOpened = useRef(false);
+
+  useEffect(() => {
+    if (open) {
+      hasOpened.current = true;
+      setMounted(true);
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: Motion.sheet,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+      return;
+    }
+
+    // En el primer render `open` ya es false; sin este corte se dispararía
+    // una animación de salida sobre un modal que nunca se abrió.
+    if (!hasOpened.current) return;
+
+    Animated.timing(progress, {
+      toValue: 0,
+      duration: Motion.sheet * 0.8,
+      easing: Easing.in(Easing.cubic),
+      useNativeDriver: true,
+    }).start(({ finished }) => {
+      // Solo desmontar si la animación llegó al final: si el usuario reabrió
+      // el selector a mitad de camino, `finished` es false y desmontar
+      // cerraría el modal que se acaba de pedir.
+      if (finished) {
+        setMounted(false);
+        setQuery('');
+      }
+    });
+  }, [open, progress]);
+
   const selected = options.find((o) => o.value === selectedValue);
   const filtered = query.trim()
     ? (() => {
@@ -57,10 +108,10 @@ export function SearchableSelect({
       })()
     : options.slice(0, INITIAL_LIMIT);
 
-  const close = () => {
-    setOpen(false);
-    setQuery('');
-  };
+  // El limpiado de la búsqueda ocurre al terminar la animación de salida, no
+  // acá: si se limpiara de inmediato, la lista se repoblaría a la vista
+  // mientras la hoja todavía está bajando.
+  const close = () => setOpen(false);
 
   return (
     <View style={s.wrap}>
@@ -96,11 +147,34 @@ export function SearchableSelect({
         )}
       </Pressable>
 
-      <Modal visible={open} transparent animationType="slide" onRequestClose={close}>
+      <Modal
+        visible={mounted}
+        transparent
+        animationType="none"
+        onRequestClose={close}
+        statusBarTranslucent
+      >
         <View style={s.overlay}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={close} />
+          <Animated.View style={[s.backdrop, { opacity: progress }]}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={close} />
+          </Animated.View>
 
-          <View style={s.sheet}>
+          <Animated.View
+            style={[
+              s.sheet,
+              {
+                transform: [
+                  {
+                    translateY: progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [sheetHeight, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}
+            onLayout={(e) => setSheetHeight(e.nativeEvent.layout.height)}
+          >
             <View style={s.grabber} />
 
             <Text style={s.sheetTitle}>{label}</Text>
@@ -178,7 +252,7 @@ export function SearchableSelect({
                 </View>
               )}
             </ScrollView>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </View>
@@ -226,6 +300,9 @@ const s = StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'flex-end',
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(10, 47, 67, 0.45)',
   },
   sheet: {

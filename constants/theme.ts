@@ -187,6 +187,8 @@ export const Motion = {
   screen: 200,
   /** Fundido cruzado entre pestañas. Más corto porque se dispara más seguido. */
   tab: 160,
+  /** Entrada de una hoja inferior: el fondo funde mientras el panel sube. */
+  sheet: 240,
 } as const;
 
 export const Effects = {
