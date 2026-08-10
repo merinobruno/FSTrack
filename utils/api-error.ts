@@ -56,3 +56,66 @@ export const TOKEN_ERROR: ApiError = {
   title: 'No se pudo autenticar con el servicio.',
   detail: 'El servidor de autenticación no respondió. Intentá más tarde.',
 };
+
+export const TIMEOUT_ERROR: ApiError = {
+  title: 'El servidor tardó demasiado en responder.',
+  detail: 'Puede estar iniciándose. Esperá unos segundos e intentá de nuevo.',
+};
+
+/**
+ * Fallo de red en el ingreso.
+ *
+ * Distinto de `NETWORK_ERROR`: desde el cliente no hay forma de separar "no
+ * hay internet" de "el servidor no está escuchando" —en los dos casos `fetch`
+ * tira sin respuesta—, así que el texto nombra las dos posibilidades en lugar
+ * de culpar solo a la conexión. Lo importante es que descarte las
+ * credenciales, que es lo que el usuario no puede deducir solo.
+ */
+export const LOGIN_NETWORK_ERROR: ApiError = {
+  title: 'No se pudo contactar al servidor.',
+  detail: 'No es un problema con tus credenciales: puede ser tu conexión o que el servidor esté caído.',
+};
+
+/**
+ * Errores de la pantalla de ingreso.
+ *
+ * Se separa del mapeo genérico por dos motivos. Uno, los textos generales no
+ * sirven acá: un 401 en cualquier otra pantalla es "token expirado", pero en
+ * el login es una credencial equivocada. Dos, y sobre todo, el usuario tiene
+ * que poder distinguir si falló por lo que escribió o porque el servidor no
+ * está — por eso los mensajes de servidor lo dicen explícitamente.
+ *
+ * El `error` que devuelve el backend queda deliberadamente afuera: viene en
+ * inglés ("Invalid credentials") y se estaba mostrando tal cual.
+ */
+export function getLoginError(status: number): ApiError {
+  if (status === 400) {
+    return {
+      title: 'Faltan datos.',
+      detail: 'Completá espacio de trabajo, cuenta y contraseña.',
+    };
+  }
+
+  if (status === 401) {
+    return {
+      title: 'Usuario o contraseña incorrectos.',
+      detail: 'Revisá también el espacio de trabajo: si no coincide, el ingreso falla igual.',
+    };
+  }
+
+  if (status === 403) {
+    return {
+      title: 'Tu cuenta está desactivada.',
+      detail: 'Las credenciales son correctas. Contactá al administrador para reactivarla.',
+    };
+  }
+
+  if (status >= 500) {
+    return {
+      title: 'El servidor no está disponible.',
+      detail: 'No es un problema con tus credenciales. Intentá de nuevo en unos minutos.',
+    };
+  }
+
+  return getFriendlyError(status, null);
+}

@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -11,9 +10,18 @@ import {
   View,
 } from 'react-native';
 
-import { Button, Field, Lockup, PairedHeading, Panel, Screen } from '@/components/brand';
+import {
+  Button,
+  Field,
+  Lockup,
+  PairedHeading,
+  Panel,
+  Screen,
+  StatusBox,
+} from '@/components/brand';
 import { FontFamily, Palette, Spacing, Type } from '@/constants/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { type ApiError } from '@/utils/api-error';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
@@ -22,6 +30,7 @@ export default function LoginScreen() {
   const [cuenta, setCuenta] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
   const cuentaInputRef = useRef<RNTextInput>(null);
   const passwordInputRef = useRef<RNTextInput>(null);
 
@@ -31,13 +40,16 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
+    setError(null);
 
     const result = await signIn({ workspace, cuenta, password });
 
     setLoading(false);
 
     if (!result.success) {
-      Alert.alert('Error', result.error || 'No se pudo iniciar sesión.');
+      // El error va en la pantalla, no en `Alert.alert`: en web react-native
+      // no implementa Alert, así que el fallo era completamente silencioso.
+      setError(result.error ?? { title: 'No se pudo iniciar sesión.' });
       return;
     }
 
@@ -95,6 +107,10 @@ export default function LoginScreen() {
                 onSubmitEditing={handleLogin}
               />
             </View>
+
+            {error && (
+              <StatusBox variant="error" title={error.title} detail={error.detail} />
+            )}
 
             <Button
               title="Ingresar"
